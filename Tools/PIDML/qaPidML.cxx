@@ -355,21 +355,20 @@ struct pidml {
   PidONNXModel model2212TPC;
   PidONNXModel model321TPC;
 
-  Configurable<std::string> cfgModelDir{"model-dir", "http://alice-ccdb.cern.ch/Users/m/mkabus/pidml/onnx_models", "base path to the directory with ONNX models"};
-  Configurable<std::string> cfgScalingParamsFile{"scaling-params", "http://alice-ccdb.cern.ch/Users/m/mkabus/pidml/onnx_models/train_208_mc_with_beta_and_sigmas_scaling_params.json", "base path to the ccdb JSON file with scaling parameters from training"};
+  Configurable<std::string> cfgScalingParamsFile{"scaling-params", "train_208_mc_with_beta_and_sigmas_scaling_params.json", "JSON file with scaling parameters from training"};
 
   void init(InitContext const&)
   {
-    model211All = PidONNXModel(cfgModelDir.value, cfgScalingParamsFile.value, 211, true);
-    model2212All = PidONNXModel(cfgModelDir.value, cfgScalingParamsFile.value, 2212, true);
-    model321All = PidONNXModel(cfgModelDir.value, cfgScalingParamsFile.value, 321, true);
+    model211All = PidONNXModel(cfgScalingParamsFile.value, 211, true);
+    model2212All = PidONNXModel(cfgScalingParamsFile.value, 2212, true);
+    model321All = PidONNXModel(cfgScalingParamsFile.value, 321, true);
 
-    model211TPC = PidONNXModel(cfgModelDir.value, cfgScalingParamsFile.value, 211, false);
-    model2212TPC = PidONNXModel(cfgModelDir.value, cfgScalingParamsFile.value, 2212, false);
-    model321TPC = PidONNXModel(cfgModelDir.value, cfgScalingParamsFile.value, 321, false);
+    model211TPC = PidONNXModel(cfgScalingParamsFile.value, 211, false);
+    model2212TPC = PidONNXModel(cfgScalingParamsFile.value, 2212, false);
+    model321TPC = PidONNXModel(cfgScalingParamsFile.value, 321, false);
   }
 
-  Filter trackFilter = aod::track::isGlobalTrack == static_cast<uint8_t>(true);
+  Filter trackFilter = requireGlobalTrackInFilter();
   using pidTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::McTrackLabels, aod::TracksExtended, aod::TrackSelection, aod::pidTOFbeta, aod::TOFSignal>>;
   void process(pidTracks const& tracks, aod::McParticles const& mcParticles)
   {

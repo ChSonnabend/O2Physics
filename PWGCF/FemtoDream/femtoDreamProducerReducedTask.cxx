@@ -39,15 +39,15 @@ using namespace o2::framework::expressions;
 namespace o2::aod
 {
 
-using FilteredFullCollision = soa::Join<aod::Collisions,
-                                        aod::EvSels,
-                                        aod::Mults>::iterator;
-using FilteredFullTracks = soa::Join<aod::FullTracks,
-                                     aod::TracksExtended, aod::TOFSignal,
-                                     aod::pidTPCEl, aod::pidTPCMu, aod::pidTPCPi,
-                                     aod::pidTPCKa, aod::pidTPCPr, aod::pidTPCDe,
-                                     aod::pidTOFEl, aod::pidTOFMu, aod::pidTOFPi,
-                                     aod::pidTOFKa, aod::pidTOFPr, aod::pidTOFDe>;
+using FemtoFullCollision = soa::Join<aod::Collisions,
+                                     aod::EvSels,
+                                     aod::Mults>::iterator;
+using FemtoFullTracks = soa::Join<aod::FullTracks,
+                                  aod::TracksExtended, aod::TOFSignal,
+                                  aod::pidTPCEl, aod::pidTPCMu, aod::pidTPCPi,
+                                  aod::pidTPCKa, aod::pidTPCPr, aod::pidTPCDe,
+                                  aod::pidTOFEl, aod::pidTOFMu, aod::pidTOFPi,
+                                  aod::pidTOFKa, aod::pidTOFPr, aod::pidTOFDe>;
 } // namespace o2::aod
 
 struct femtoDreamProducerReducedTask {
@@ -111,10 +111,10 @@ struct femtoDreamProducerReducedTask {
     trackCuts.setSelection(ConfTrkDCAzMax, femtoDreamTrackSelection::kDCAzMax, femtoDreamSelection::kAbsUpperLimit);
     trackCuts.setSelection(ConfTrkPIDnSigmaMax, femtoDreamTrackSelection::kPIDnSigmaMax, femtoDreamSelection::kAbsUpperLimit);
     trackCuts.setPIDSpecies(ConfTrkTPIDspecies);
-    trackCuts.init<aod::femtodreamparticle::ParticleType::kTrack, aod::femtodreamparticle::cutContainerType>(&qaRegistry);
+    trackCuts.init<aod::femtodreamparticle::ParticleType::kTrack, aod::femtodreamparticle::TrackType::kNoChild, aod::femtodreamparticle::cutContainerType>(&qaRegistry);
   }
 
-  void process(aod::FilteredFullCollision const& col, aod::BCsWithTimestamps const&, aod::FilteredFullTracks const& tracks) /// \todo with FilteredFullV0s
+  void process(aod::FemtoFullCollision const& col, aod::BCsWithTimestamps const&, aod::FemtoFullTracks const& tracks) /// \todo with FilteredFullV0s
   {
     auto bc = col.bc_as<aod::BCsWithTimestamps>(); /// adding timestamp to access magnetic field later
     const auto vtxZ = col.posZ();
@@ -122,9 +122,9 @@ struct femtoDreamProducerReducedTask {
     /// For benchmarking on Run 2, V0M in FemtoDreamRun2 is defined V0M/2
     int mult = 0;
     if (ConfIsRun3) {
-      mult = col.multT0M(); /// Mult based on T0, temporary storing to be fixed and checked
+      mult = col.multFT0M(); /// Mult based on T0, temporary storing to be fixed and checked
     } else {
-      mult = 0.5 * (col.multV0M());
+      mult = 0.5 * (col.multFV0M());
     }
     /// First thing to do is to check whether the basic event selection criteria are fulfilled
     // If the basic selection is NOT fullfilled:
@@ -147,7 +147,7 @@ struct femtoDreamProducerReducedTask {
       if (!trackCuts.isSelectedMinimal(track)) {
         continue;
       }
-      trackCuts.fillQA<aod::femtodreamparticle::ParticleType::kTrack>(track);
+      trackCuts.fillQA<aod::femtodreamparticle::ParticleType::kTrack, aod::femtodreamparticle::TrackType::kNoChild>(track);
       // the bit-wise container of the systematic variations is obtained
       auto cutContainer = trackCuts.getCutContainer<aod::femtodreamparticle::cutContainerType>(track);
 
@@ -159,8 +159,7 @@ struct femtoDreamProducerReducedTask {
                    aod::femtodreamparticle::ParticleType::kTrack,
                    cutContainer.at(femtoDreamTrackSelection::TrackContainerPosition::kCuts),
                    cutContainer.at(femtoDreamTrackSelection::TrackContainerPosition::kPID),
-                   track.dcaXY(),
-                   childIDs);
+                   track.dcaXY(), childIDs, 0, 0);
       if (ConfDebugOutput) {
         outputDebugTracks(track.sign(),
                           (uint8_t)track.tpcNClsFound(),
@@ -182,7 +181,12 @@ struct femtoDreamProducerReducedTask {
                           track.tofNSigmaStorePi(),
                           track.tofNSigmaStoreKa(),
                           track.tofNSigmaStorePr(),
-                          track.tofNSigmaStoreDe());
+                          track.tofNSigmaStoreDe(),
+                          -999.,
+                          -999.,
+                          -999.,
+                          -999.,
+                          -999.);
       }
     }
   }

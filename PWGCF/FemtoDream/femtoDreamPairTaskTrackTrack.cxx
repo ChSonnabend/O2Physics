@@ -28,6 +28,7 @@
 #include "FemtoDreamPairCleaner.h"
 #include "FemtoDreamContainer.h"
 #include "FemtoDreamDetaDphiStar.h"
+#include "FemtoUtils.h"
 
 using namespace o2;
 using namespace o2::analysis::femtoDream;
@@ -42,30 +43,16 @@ static constexpr int nCuts = 5;
 static const std::vector<std::string> partNames{"PartOne", "PartTwo"};
 static const std::vector<std::string> cutNames{"MaxPt", "PIDthr", "nSigmaTPC", "nSigmaTPCTOF", "MaxP"};
 static const float cutsTable[nPart][nCuts]{
-  {4.05f, 0.75f, 3.f, 3.f, 100.f},
-  {4.05f, 0.75f, 3.f, 3.f, 100.f}};
+  {4.05f, 1.f, 3.f, 3.f, 100.f},
+  {4.05f, 1.f, 3.f, 3.f, 100.f}};
 
-static constexpr int nNsigma = 3;
-static constexpr float kNsigma[nNsigma] = {3.5f, 3.f, 2.5f};
+static const std::vector<float> kNsigma = {3.5f, 3.f, 2.5f};
 
-enum kPIDselection {
-  k3d5sigma = 0,
-  k3sigma = 1,
-  k2d5sigma = 2
-};
-
-enum kDetector {
-  kTPC = 0,
-  kTPCTOF = 1,
-  kNdetectors = 2
-};
 } // namespace
 
 struct femtoDreamPairTaskTrackTrack {
 
   /// Particle selection part
-  // uint trackTypeSel = aod::femtodreamparticle::ParticleType::kTrack; // \todo at some point filters will be able to cope with enums
-  // \todo checky why is the enum not working in the partition
 
   /// Table for both particles
   Configurable<LabeledArray<float>> cfgCutTable{"cfgCutTable", {cutsTable[0], nPart, nCuts, partNames, cutNames}, "Particle selections"};
@@ -77,9 +64,7 @@ struct femtoDreamPairTaskTrackTrack {
   Configurable<std::vector<int>> ConfPIDPartOne{"ConfPIDPartOne", std::vector<int>{2}, "Particle 1 - Read from cutCulator"}; // we also need the possibility to specify whether the bit is true/false ->std>>vector<std::pair<int, int>>int>>
 
   /// Partition for particle 1
-  Partition<aod::FemtoDreamParticles> partsOne = (aod::femtodreamparticle::partType == uint8_t(aod::femtodreamparticle::ParticleType::kTrack)) &&
-                                                 //  (aod::femtodreamparticle::pt < cfgCutTable->get("PartOne", "MaxPt")) &&
-                                                 ((aod::femtodreamparticle::cut & ConfCutPartOne) == ConfCutPartOne);
+  Partition<aod::FemtoDreamParticles> partsOne = (aod::femtodreamparticle::partType == uint8_t(aod::femtodreamparticle::ParticleType::kTrack)) && ((aod::femtodreamparticle::cut & ConfCutPartOne) == ConfCutPartOne);
 
   /// Histogramming for particle 1
   FemtoDreamParticleHisto<aod::femtodreamparticle::ParticleType::kTrack, 1> trackHistoPartOne;
@@ -113,6 +98,7 @@ struct femtoDreamPairTaskTrackTrack {
   ConfigurableAxis CfgmTBins{"CfgmTBins", {225, 0., 7.5}, "binning mT"};
   Configurable<int> ConfNEventsMix{"ConfNEventsMix", 5, "Number of events for mixing"};
   Configurable<bool> ConfIsCPR{"ConfIsCPR", true, "Close Pair Rejection"};
+  Configurable<bool> ConfCPRPlotPerRadii{"ConfCPRPlotPerRadii", false, "Plot CPR per radii"};
 
   FemtoDreamContainer<femtoDreamContainer::EventType::same, femtoDreamContainer::Observable::kstar> sameEventCont;
   FemtoDreamContainer<femtoDreamContainer::EventType::mixed, femtoDreamContainer::Observable::kstar> mixedEventCont;
@@ -138,7 +124,7 @@ struct femtoDreamPairTaskTrackTrack {
     mixedEventCont.setPDGCodes(ConfPDGCodePartOne, ConfPDGCodePartTwo);
     pairCleaner.init(&qaRegistry);
     if (ConfIsCPR) {
-      pairCloseRejection.init(&resultRegistry, &qaRegistry, 0.01, 0.01, false); /// \todo add config for Δη and ΔΦ cut values
+      pairCloseRejection.init(&resultRegistry, &qaRegistry, 0.01, 0.01, ConfCPRPlotPerRadii); /// \todo add config for Δη and ΔΦ cut values
     }
 
     vPIDPartOne = ConfPIDPartOne;
@@ -153,81 +139,14 @@ struct femtoDreamPairTaskTrackTrack {
     ccdb->setCreatedNotAfter(now);
   }
 
-  /// Function to retrieve the nominal mgnetic field in kG (0.1T) and convert it directly to T
-  float getMagneticFieldTesla(uint64_t timestamp)
-  {
-    // TODO done only once (and not per run). Will be replaced by CCDBConfigurable
-    static o2::parameters::GRPObject* grpo = nullptr;
-    if (grpo == nullptr) {
-      grpo = ccdb->getForTimeStamp<o2::parameters::GRPObject>("GLO/GRP/GRP", timestamp);
-      if (grpo == nullptr) {
-        LOGF(fatal, "GRP object not found for timestamp %llu", timestamp);
-        return 0;
-      }
-      LOGF(info, "Retrieved GRP for timestamp %llu with magnetic field of %d kG", timestamp, grpo->getNominalL3Field());
-    }
-    float output = 0.1 * (grpo->getNominalL3Field());
-    return output;
-  }
-
-  /// internal function that returns the kPIDselection element corresponding to a specifica n-sigma value
-  /// \param number of sigmas for PIF
-  /// \return kPIDselection corresponing to n-sigma
-  kPIDselection getPIDselection(float nSigma)
-  {
-    for (int i = 0; i < nNsigma; i++) {
-      if (abs(nSigma - kNsigma[i]) < 1e-3) {
-        return static_cast<kPIDselection>(i);
-      }
-    }
-    LOG(info) << "Invalid value of nSigma: " << nSigma << ". Standard 3 sigma returned." << std::endl;
-    return kPIDselection::k3sigma;
-  }
-
-  /// function that checks whether the PID selection specified in the vectors is fulfilled
-  /// \param pidcut Bit-wise container for the PID
-  /// \param vSpecies Vector with the different selections
-  /// \return Whether the PID selection specified in the vectors is fulfilled
-  bool isPIDSelected(aod::femtodreamparticle::cutContainerType const& pidcut, std::vector<int> const& vSpecies, float nSigma, kDetector iDet = kDetector::kTPC)
-  {
-    bool pidSelection = true;
-    kPIDselection kNsigma = getPIDselection(nSigma);
-    for (auto iSpecies : vSpecies) {
-      //\todo we also need the possibility to specify whether the bit is true/false ->std>>vector<std::pair<int, int>>
-      // if (!((pidcut >> it.first) & it.second)) {
-      int bit_to_check = cfgNspecies * kDetector::kNdetectors * kNsigma + iSpecies * kDetector::kNdetectors + iDet;
-      if (!(pidcut & (1UL << bit_to_check))) {
-        pidSelection = false;
-      }
-    }
-    return pidSelection;
-  };
-
-  /// function that checks whether the PID selection specified in the vectors is fulfilled, depending on the momentum TPC or TPC+TOF PID is conducted
-  /// \param pidcut Bit-wise container for the PID
-  /// \param mom Momentum of the track
-  /// \param pidThresh Momentum threshold that separates between TPC and TPC+TOF PID
-  /// \param vecTPC Vector with the different selections for the TPC PID
-  /// \param vecComb Vector with the different selections for the TPC+TOF PID
-  /// \return Whether the PID selection is fulfilled
-  bool isFullPIDSelected(aod::femtodreamparticle::cutContainerType const& pidCut, float const& momentum, float const& pidThresh, std::vector<int> const& vSpecies, float nSigmaTPC = 3.5, float nSigmaTPCTOF = 3.5)
-  {
-    bool pidSelection = true;
-    if (momentum < pidThresh) {
-      /// TPC PID only
-      pidSelection = isPIDSelected(pidCut, vSpecies, nSigmaTPC, kDetector::kTPC);
-    } else {
-      /// TPC + TOF PID
-      pidSelection = isPIDSelected(pidCut, vSpecies, nSigmaTPCTOF, kDetector::kTPCTOF);
-    }
-    return pidSelection;
-  };
-
   /// This function processes the same event and takes care of all the histogramming
   /// \todo the trivial loops over the tracks should be factored out since they will be common to all combinations of T-T, T-V0, V0-V0, ...
   void processSameEvent(o2::aod::FemtoDreamCollision& col,
                         o2::aod::FemtoDreamParticles& parts)
   {
+    const auto& tmstamp = col.timestamp();
+    const auto& magFieldTesla = getMagneticFieldTesla(tmstamp, ccdb);
+
     auto groupPartsOne = partsOne->sliceByCached(aod::femtodreamparticle::femtoDreamCollisionId, col.globalIndex());
     auto groupPartsTwo = partsTwo->sliceByCached(aod::femtodreamparticle::femtoDreamCollisionId, col.globalIndex());
 
@@ -238,7 +157,7 @@ struct femtoDreamPairTaskTrackTrack {
       if (part.p() > cfgCutTable->get("PartOne", "MaxP") || part.pt() > cfgCutTable->get("PartOne", "MaxPt")) {
         continue;
       }
-      if (!isFullPIDSelected(part.pidcut(), part.p(), cfgCutTable->get("PartOne", "PIDthr"), vPIDPartOne, cfgCutTable->get("PartOne", "nSigmaTPC"), cfgCutTable->get("PartOne", "nSigmaTPCTOF"))) {
+      if (!isFullPIDSelected(part.pidcut(), part.p(), cfgCutTable->get("PartOne", "PIDthr"), vPIDPartOne, cfgNspecies, kNsigma, cfgCutTable->get("PartOne", "nSigmaTPC"), cfgCutTable->get("PartOne", "nSigmaTPCTOF"))) {
         continue;
       }
       trackHistoPartOne.fillQA(part);
@@ -248,7 +167,7 @@ struct femtoDreamPairTaskTrackTrack {
         if (part.p() > cfgCutTable->get("PartTwo", "MaxP") || part.pt() > cfgCutTable->get("PartTwo", "MaxPt")) {
           continue;
         }
-        if (!isFullPIDSelected(part.pidcut(), part.p(), cfgCutTable->get("PartTwo", "PIDthr"), vPIDPartTwo, cfgCutTable->get("PartTwo", "nSigmaTPC"), cfgCutTable->get("PartTwo", "nSigmaTPCTOF"))) {
+        if (!isFullPIDSelected(part.pidcut(), part.p(), cfgCutTable->get("PartTwo", "PIDthr"), vPIDPartTwo, cfgNspecies, kNsigma, cfgCutTable->get("PartTwo", "nSigmaTPC"), cfgCutTable->get("PartTwo", "nSigmaTPCTOF"))) {
           continue;
         }
         trackHistoPartTwo.fillQA(part);
@@ -259,13 +178,12 @@ struct femtoDreamPairTaskTrackTrack {
       if (p1.p() > cfgCutTable->get("PartOne", "MaxP") || p1.pt() > cfgCutTable->get("PartOne", "MaxPt") || p2.p() > cfgCutTable->get("PartTwo", "MaxP") || p2.pt() > cfgCutTable->get("PartTwo", "MaxPt")) {
         continue;
       }
-      if (!isFullPIDSelected(p1.pidcut(), p1.p(), cfgCutTable->get("PartOne", "PIDthr"), vPIDPartOne, cfgCutTable->get("PartOne", "nSigmaTPC"), cfgCutTable->get("PartOne", "nSigmaTPCTOF")) || !isFullPIDSelected(p2.pidcut(), p2.p(), cfgCutTable->get("PartTwo", "PIDthr"), vPIDPartTwo, cfgCutTable->get("PartTwo", "nSigmaTPC"), cfgCutTable->get("PartTwo", "nSigmaTPCTOF"))) {
+      if (!isFullPIDSelected(p1.pidcut(), p1.p(), cfgCutTable->get("PartOne", "PIDthr"), vPIDPartOne, cfgNspecies, kNsigma, cfgCutTable->get("PartOne", "nSigmaTPC"), cfgCutTable->get("PartOne", "nSigmaTPCTOF")) || !isFullPIDSelected(p2.pidcut(), p2.p(), cfgCutTable->get("PartTwo", "PIDthr"), vPIDPartTwo, cfgNspecies, kNsigma, cfgCutTable->get("PartTwo", "nSigmaTPC"), cfgCutTable->get("PartTwo", "nSigmaTPCTOF"))) {
         continue;
       }
 
-      auto tmstamp = col.timestamp();
       if (ConfIsCPR) {
-        if (pairCloseRejection.isClosePair(p1, p2, parts, getMagneticFieldTesla(tmstamp))) {
+        if (pairCloseRejection.isClosePair(p1, p2, parts, magFieldTesla)) {
           continue;
         }
       }
@@ -285,6 +203,7 @@ struct femtoDreamPairTaskTrackTrack {
   void processMixedEvent(o2::aod::FemtoDreamCollisions& cols,
                          o2::aod::FemtoDreamParticles& parts)
   {
+
     BinningPolicy<aod::collision::PosZ, aod::femtodreamcollision::MultV0M> colBinning{{CfgVtxBins, CfgMultBins}, true};
 
     for (auto& [collision1, collision2] : soa::selfCombinations(colBinning, 5, -1, cols, cols)) {
@@ -292,36 +211,33 @@ struct femtoDreamPairTaskTrackTrack {
       auto groupPartsOne = partsOne->sliceByCached(aod::femtodreamparticle::femtoDreamCollisionId, collision1.globalIndex());
       auto groupPartsTwo = partsTwo->sliceByCached(aod::femtodreamparticle::femtoDreamCollisionId, collision2.globalIndex());
 
+      const auto& tmstamp1 = collision1.timestamp();
+      const auto& magFieldTesla1 = getMagneticFieldTesla(tmstamp1, ccdb);
+
+      const auto& tmstamp2 = collision2.timestamp();
+      const auto& magFieldTesla2 = getMagneticFieldTesla(tmstamp2, ccdb);
+
+      if (magFieldTesla1 != magFieldTesla2) {
+        continue;
+      }
+
       /// \todo before mixing we should check whether both collisions contain a pair of particles!
-      /// could work like that, but only if PID is contained within the partitioning!
-      // auto particlesEvent1 = std::get<aod::FemtoDreamParticles>(it1.associatedTables());
-      // particlesEvent1.bindExternalIndices(&cols);
-      // auto particlesEvent2 = std::get<aod::FemtoDreamParticles>(it2.associatedTables());
-      // particlesEvent2.bindExternalIndices(&cols);
-      /// for the x-check
-      // partsOne.bindTable(particlesEvent2);
-      // auto nPart1Evt2 = partsOne.size();
-      // partsTwo.bindTable(particlesEvent1);
-      // auto nPart2Evt1 = partsTwo.size();
-      /// for actual event mixing
-      // partsOne.bindTable(particlesEvent1);
-      // partsTwo.bindTable(particlesEvent2);
       // if (partsOne.size() == 0 || nPart2Evt1 == 0 || nPart1Evt2 == 0 || partsTwo.size() == 0 ) continue;
 
       for (auto& [p1, p2] : combinations(CombinationsFullIndexPolicy(groupPartsOne, groupPartsTwo))) {
         if (p1.p() > cfgCutTable->get("PartOne", "MaxP") || p1.pt() > cfgCutTable->get("PartOne", "MaxPt") || p2.p() > cfgCutTable->get("PartTwo", "MaxP") || p2.pt() > cfgCutTable->get("PartTwo", "MaxPt")) {
           continue;
         }
-        if (!isFullPIDSelected(p1.pidcut(), p1.p(), cfgCutTable->get("PartOne", "PIDthr"), vPIDPartOne, cfgCutTable->get("PartOne", "nSigmaTPC"), cfgCutTable->get("PartOne", "nSigmaTPCTOF")) || !isFullPIDSelected(p2.pidcut(), p2.p(), cfgCutTable->get("PartTwo", "PIDthr"), vPIDPartTwo, cfgCutTable->get("PartTwo", "nSigmaTPC"), cfgCutTable->get("PartTwo", "nSigmaTPCTOF"))) {
+        if (!isFullPIDSelected(p1.pidcut(), p1.p(), cfgCutTable->get("PartOne", "PIDthr"), vPIDPartOne, cfgNspecies, kNsigma, cfgCutTable->get("PartOne", "nSigmaTPC"), cfgCutTable->get("PartOne", "nSigmaTPCTOF")) || !isFullPIDSelected(p2.pidcut(), p2.p(), cfgCutTable->get("PartTwo", "PIDthr"), vPIDPartTwo, cfgNspecies, kNsigma, cfgCutTable->get("PartTwo", "nSigmaTPC"), cfgCutTable->get("PartTwo", "nSigmaTPCTOF"))) {
           continue;
         }
 
         if (ConfIsCPR) {
-          if (pairCloseRejection.isClosePair(p1, p2, parts, getMagneticFieldTesla(collision1.timestamp()))) {
+          if (pairCloseRejection.isClosePair(p1, p2, parts, magFieldTesla1)) {
             continue;
           }
         }
-        mixedEventCont.setPair(p1, p2, collision1.multV0M()); // < \todo dirty trick, the multiplicity will be of course within the bin width used for the hashes
+        mixedEventCont.setPair(p1, p2, collision1.multV0M());
       }
     }
   }

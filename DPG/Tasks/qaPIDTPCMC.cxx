@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 ///
-/// \file   qaTPCMC.cxx
+/// \file   qaPIDTPCMC.cxx
 /// \author Nicolò Jacazio
 /// \brief  Task to produce QA output of the PID with TPC running on the MC.
 ///
@@ -65,7 +65,7 @@ struct pidTPCTaskQA {
                                                         "nsigmaMCprm/Tr", "nsigmaMCprm/He", "nsigmaMCprm/Al"};
   static constexpr const char* pT[Np] = {"e", "#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
   static constexpr int PDGs[Np] = {11, 13, 211, 321, 2212, 1000010020, 1000010030, 1000020030};
-  HistogramRegistry histos{"Histos", {}, OutputObjHandlingPolicy::QAObject};
+  HistogramRegistry histos{"Histos", {}, OutputObjHandlingPolicy::AnalysisObject};
 
   Configurable<int> checkPrimaries{"checkPrimaries", 1,
                                    "Whether to check physical primary and secondaries particles for the resolution."};
@@ -168,7 +168,7 @@ struct pidTPCTaskQA {
                          aod::pidTPCFullKa, aod::pidTPCFullPr, aod::pidTPCFullDe,
                          aod::pidTPCFullTr, aod::pidTPCFullHe, aod::pidTPCFullAl,
                          aod::McTrackLabels> const& tracks,
-               aod::McParticles_000& mcParticles)
+               aod::McParticles& mcParticles)
   {
     if (collision.numContrib() < nMinNumberOfContributors) {
       return;

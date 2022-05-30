@@ -42,6 +42,8 @@
 #include "Common/DataModel/TrackSelectionTables.h"
 #include "Common/DataModel/EventSelection.h"
 #include "Common/DataModel/Centrality.h"
+#include "DataFormatsParameters/GRPObject.h"
+#include <CCDB/BasicCCDBManager.h>
 
 #include <TFile.h>
 #include <TLorentzVector.h>
@@ -124,6 +126,7 @@ struct lambdakzerofinder {
   Produces<aod::StoredV0Datas> v0data;
   Produces<aod::V0s> v0;
   Produces<aod::V0DataLink> v0datalink;
+  Service<o2::ccdb::BasicCCDBManager> ccdb;
 
   HistogramRegistry registry{
     "registry",
@@ -133,17 +136,51 @@ struct lambdakzerofinder {
   };
 
   // Configurables
-  Configurable<double> d_bz{"d_bz", +5.0, "bz field"};
   Configurable<double> d_UseAbsDCA{"d_UseAbsDCA", kTRUE, "Use Abs DCAs"};
+  Configurable<double> d_bz_input{"d_bz", -999, "bz field, -999 is automatic"};
 
   // Selection criteria
   Configurable<double> v0cospa{"v0cospa", 0.995, "V0 CosPA"}; // double -> N.B. dcos(x)/dx = 0 at x=0)
   Configurable<float> dcav0dau{"dcav0dau", 1.0, "DCA V0 Daughters"};
   Configurable<float> v0radius{"v0radius", 5.0, "v0radius"};
 
-  void process(aod::Collision const& collision, soa::Join<aod::FullTracks, aod::TracksCov> const& tracks,
-               aod::V0GoodPosTracks const& ptracks, aod::V0GoodNegTracks const& ntracks)
+  void init(InitContext& context)
   {
+    // using namespace analysis::lambdakzerofinder;
+
+    ccdb->setURL("https://alice-ccdb.cern.ch");
+    ccdb->setCaching(true);
+    ccdb->setLocalObjectValidityChecking();
+  }
+
+  float getMagneticField(uint64_t timestamp)
+  {
+    // TODO done only once (and not per run). Will be replaced by CCDBConfigurable
+    static o2::parameters::GRPObject* grpo = nullptr;
+    if (grpo == nullptr) {
+      grpo = ccdb->getForTimeStamp<o2::parameters::GRPObject>("GLO/GRP/GRP", timestamp);
+      if (grpo == nullptr) {
+        LOGF(fatal, "GRP object not found for timestamp %llu", timestamp);
+        return 0;
+      }
+      LOGF(info, "Retrieved GRP for timestamp %llu with magnetic field of %d kG", timestamp, grpo->getNominalL3Field());
+    }
+    float output = grpo->getNominalL3Field();
+    return output;
+  }
+
+  void process(aod::Collision const& collision, soa::Join<aod::FullTracks, aod::TracksCov> const& tracks,
+               aod::V0GoodPosTracks const& ptracks, aod::V0GoodNegTracks const& ntracks, aod::BCsWithTimestamps const&)
+  {
+
+    float d_bz;
+    if (d_bz_input < -990) {
+      // Fetch magnetic field from ccdb for current collision
+      d_bz = getMagneticField(collision.bc_as<aod::BCsWithTimestamps>().timestamp());
+    } else {
+      d_bz = d_bz_input;
+    }
+
     // Define o2 fitter, 2-prong
     o2::vertexing::DCAFitterN<2> fitter;
     fitter.setBz(d_bz);
@@ -243,7 +280,7 @@ struct lambdakzerofinderQA {
   Filter preFilterV0 = nabs(aod::v0data::dcapostopv) > dcapostopv&& nabs(aod::v0data::dcanegtopv) > dcanegtopv&& aod::v0data::dcaV0daughters < dcav0dau;
 
   /// Connect to V0Data: newly indexed, note: V0Datas table incompatible with standard V0 table!
-  void process(soa::Join<aod::Collisions, aod::EvSels, aod::CentV0Ms>::iterator const& collision,
+  void process(soa::Join<aod::Collisions, aod::EvSels, aod::CentRun2V0Ms>::iterator const& collision,
                soa::Filtered<aod::V0Datas> const& fullV0s)
   {
     if (!collision.alias()[kINT7]) {
@@ -263,11 +300,11 @@ struct lambdakzerofinderQA {
         registry.fill(HIST("hDCAV0Dau"), v0.dcaV0daughters());
 
         if (TMath::Abs(v0.yLambda()) < 0.5) {
-          registry.fill(HIST("h3dMassLambda"), collision.centV0M(), v0.pt(), v0.mLambda());
-          registry.fill(HIST("h3dMassAntiLambda"), collision.centV0M(), v0.pt(), v0.mAntiLambda());
+          registry.fill(HIST("h3dMassLambda"), collision.centRun2V0M(), v0.pt(), v0.mLambda());
+          registry.fill(HIST("h3dMassAntiLambda"), collision.centRun2V0M(), v0.pt(), v0.mAntiLambda());
         }
         if (TMath::Abs(v0.yK0Short()) < 0.5) {
-          registry.fill(HIST("h3dMassK0Short"), collision.centV0M(), v0.pt(), v0.mK0Short());
+          registry.fill(HIST("h3dMassK0Short"), collision.centRun2V0M(), v0.pt(), v0.mK0Short());
         }
         lNCand++;
       }

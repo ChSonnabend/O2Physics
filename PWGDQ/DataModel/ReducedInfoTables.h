@@ -52,7 +52,7 @@ DECLARE_SOA_TABLE(ReducedEvents, "AOD", "REDUCEDEVENT", //!   Main event informa
                   collision::CollisionTime, collision::CollisionTimeRes);
 
 DECLARE_SOA_TABLE(ReducedEventsExtended, "AOD", "REEXTENDED", //!  Extended event information
-                  bc::GlobalBC, bc::TriggerMask, timestamp::Timestamp, reducedevent::TriggerAlias, cent::CentEstV0M);
+                  bc::GlobalBC, bc::TriggerMask, timestamp::Timestamp, reducedevent::TriggerAlias, cent::CentRun2V0M);
 
 DECLARE_SOA_TABLE(ReducedEventsVtxCov, "AOD", "REVTXCOV", //!    Event vertex covariance matrix
                   collision::CovXX, collision::CovXY, collision::CovXZ,
@@ -206,7 +206,7 @@ namespace reducedbarreltracklabel
 {
 DECLARE_SOA_INDEX_COLUMN(ReducedMCTrack, reducedMCTrack); //!
 DECLARE_SOA_COLUMN(McMask, mcMask, uint16_t);
-}
+} // namespace reducedbarreltracklabel
 
 // NOTE: MC labels. This table has one entry for each reconstructed track (joinable with the track tables)
 //          The McParticleId points to the position of the MC truth track from the ReducedTracksMC table
@@ -349,7 +349,7 @@ DECLARE_SOA_COLUMN(TauxyErr, tauxyErr, float);        //! Error on transverse ps
 DECLARE_SOA_COLUMN(Lz, lz, float);                    //! Longitudinal projection of decay length
 DECLARE_SOA_COLUMN(Lxy, lxy, float);                  //! Transverse projection of decay length
 // DECLARE_SOA_INDEX_COLUMN(ReducedMuon, reducedmuon2); //!
-DECLARE_SOA_DYNAMIC_COLUMN(Px, px,                    //!
+DECLARE_SOA_DYNAMIC_COLUMN(Px, px, //!
                            [](float pt, float phi) -> float { return pt * std::cos(phi); });
 DECLARE_SOA_DYNAMIC_COLUMN(Py, py, //!
                            [](float pt, float phi) -> float { return pt * std::sin(phi); });
@@ -400,6 +400,32 @@ DECLARE_SOA_TABLE(DimuonsAll, "AOD", "RTDIMUONALL", //!
 using Dilepton = Dileptons::iterator;
 using DileptonExtra = DileptonsExtra::iterator;
 using DimuonAll = DimuonsAll::iterator;
+
+// candidate information
+namespace dileptonTrackCandidate
+{
+DECLARE_SOA_INDEX_COLUMN(ReducedEvent, reducedevent); //!
+DECLARE_SOA_COLUMN(McDecision, mcDecision, uint32_t); //!
+DECLARE_SOA_COLUMN(Mass, mass, float);                //!
+DECLARE_SOA_COLUMN(Pt, pt, float);                    //!
+DECLARE_SOA_COLUMN(Eta, eta, float);                  //!
+DECLARE_SOA_COLUMN(Tauz, tauz, float);                //!
+DECLARE_SOA_COLUMN(Tauxy, tauxy, float);              //!
+DECLARE_SOA_COLUMN(Lz, lz, float);                    //! Longitudinal projection of decay length
+DECLARE_SOA_COLUMN(Lxy, lxy, float);                  //! Transverse projection of decay length
+} // namespace dileptonTrackCandidate
+
+DECLARE_SOA_TABLE(DileptonTrackCandidates, "AOD", "RTDILEPTONTRACK", //!
+                  dileptonTrackCandidate::McDecision,
+                  dileptonTrackCandidate::Mass,
+                  dileptonTrackCandidate::Pt,
+                  dileptonTrackCandidate::Eta,
+                  dileptonTrackCandidate::Tauz,
+                  dileptonTrackCandidate::Tauxy,
+                  dileptonTrackCandidate::Lz,
+                  dileptonTrackCandidate::Lxy);
+
+using DileptonTrackCandidate = DileptonTrackCandidates::iterator;
 
 namespace v0bits
 {
