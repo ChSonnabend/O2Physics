@@ -11,9 +11,9 @@
 
 ///
 /// \file   pidTPCFull.cxx
-/// \author Annalena Kalteyer annalena.sophie.kalteyer@cern.ch
-/// \author Christian Sonnabend christian.sonnabend@cern.ch
 /// \author Nicolò Jacazio nicolo.jacazio@cern.ch
+/// \author Christian Sonnabend christian.sonnabend@cern.ch
+/// \author Annalena Kalteyer annalena.sophie.kalteyer@cern.ch
 /// \brief  Task to produce PID tables for TPC split for each particle.
 ///         Only the tables for the mass hypotheses requested are filled, the others are sent empty.
 ///         QA histograms for the TPC PID can be produced by adding `--add-qa 1` to the workflow
@@ -69,18 +69,20 @@ struct tpcPidFull {
   o2::pid::tpc::Response* responseptr = nullptr;
   // Network correction for TPC PID response
   Network network;
+  std::string networkPathOnAlien = ""; // Will be set by the user or automatically if TPCPIDResponse object is fetched from CCDB
 
   // Input parameters
   Service<o2::ccdb::BasicCCDBManager> ccdb;
   Configurable<std::string> paramfile{"param-file", "", "Path to the parametrization object, if emtpy the parametrization is not taken from file"};
   Configurable<std::string> url{"ccdb-url", "http://alice-ccdb.cern.ch", "url of the ccdb repository"};
   Configurable<std::string> ccdbPath{"ccdbPath", "Analysis/PID/TPC/Response", "Path of the TPC parametrization on the CCDB"};
+  o2::ccdb::CcdbApi ccdb_api; /// API to access CCDB headers
   Configurable<long> ccdbTimestamp{"ccdb-timestamp", 0, "timestamp of the object used to query in CCDB the detector response. Exceptions: -1 gets the latest object, 0 gets the run dependent timestamp"};
   // Parameters for loading network from a file / downloading the file
   Configurable<int> useNetworkCorrection{"useNetworkCorrection", 0, "Using the network correction for the TPC dE/dx signal"};
   Configurable<int> downloadNetworkFromAlien{"downloadNetworkFromAlien", 0, "Download network from AliEn (1) or use a local file (filepath must be provided by --networkPathLocally /path/to/file) (0)"};
-  Configurable<std::string> networkPathAlien{"networkPathAlien", "alien:///alice/cern.ch/user/c/csonnabe/tpc_network_testing/net_onnx_0.onnx", "Path to .onnx file containing the network on AliEn"};
-  Configurable<std::string> networkPathLocally{"networkPathLocally", "network.onnx", "Path to local .onnx file containing the network"};
+  Configurable<std::string> networkPathLocally{"networkPathLocally", "network.onnx", "Path to local .onnx file containing the network, if downloadNetworkFromAlien is True, the network will be downloaded to this directory"};
+  Configurable<std::string> networkPathAlien{"networkPathAlien", "", "If the network file must be downloaded from AliEn and a local file for the TPCPIDResponse-object is used, then this varibale must be set to the path on AliEn, generally: alien:///alice/cern.ch/user/c/csonnabe/TPC/NN_PID/network_[runnumber].onnx ; See https://alimonitor.cern.ch/catalogue/#/alice/cern.ch/user/c/csonnabe/TPC/NN_PID"};
   // Configuration flags to include and exclude particle hypotheses
   Configurable<int> pidEl{"pid-el", -1, {"Produce PID information for the Electron mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
   Configurable<int> pidMu{"pid-mu", -1, {"Produce PID information for the Muon mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
@@ -112,6 +114,14 @@ struct tpcPidFull {
     enableFlag("Al", pidAl);
 
     const TString fname = paramfile.value;
+    const std::string path = ccdbPath.value;
+    const auto time = ccdbTimestamp.value;
+
+    ccdb_api.init(url.value);
+    if (!ccdb_api.isHostReachable()) {
+      LOGF(fatal, "CCDB host %s is not reacheable, cannot go forward", url.value.data());
+    }
+
     if (fname != "") { // Loading the parametrization from file
       LOGP(info, "Loading TPC response from file {}", fname);
       try {
@@ -123,8 +133,6 @@ struct tpcPidFull {
       };
     } else {
       useCCDBParam = true;
-      const std::string path = ccdbPath.value;
-      const auto time = ccdbTimestamp.value;
       ccdb->setURL(url.value);
       ccdb->setTimestamp(time);
       ccdb->setCaching(true);
@@ -138,9 +146,30 @@ struct tpcPidFull {
     if (!useNetworkCorrection) {
       return;
     } else {
+
+      // Retrieving the run-number to fetch the neural network from AliEn
+      if (downloadNetworkFromAlien) {
+        networkPathOnAlien = networkPathAlien.value; // sets the global variable
+        if (fname != "") {
+          if (networkPathAlien.value == "") {
+            LOGF(fatal, "The network-file on AliEn was not specified. Please specify the path (generally: alien:///alice/cern.ch/user/c/csonnabe/TPC/NN_PID/network_[runnumber].onnx) or use a local network file. See https://alimonitor.cern.ch/catalogue/#/alice/cern.ch/user/c/csonnabe/TPC/NN_PID");
+          }
+        } else {
+          if (networkPathAlien.value == "") {
+            std::map<std::string, std::string> metadata, headers;
+            headers = ccdb_api.retrieveHeaders(path, metadata, time);
+            if (headers.count("runnumber") == 0) {
+              LOG(fatal) << "Cannot find run number in metadata of TPCPIDResponse object with path: " << path << " and timestamp: " << time << " !";
+            }
+            std::string runnumber = headers["runnumber"].c_str();
+            networkPathOnAlien = "alien:///alice/cern.ch/user/c/csonnabe/TPC/NN_PID/network_" + runnumber + ".onnx";
+          }
+        }
+      }
+
       Network temp_net(networkPathLocally.value,
                        downloadNetworkFromAlien.value,
-                       networkPathAlien.value,
+                       networkPathOnAlien,
                        true);
       network = temp_net;
     }
@@ -171,36 +200,50 @@ struct tpcPidFull {
     if (useNetworkCorrection) {
 
       auto start_overhead = std::chrono::high_resolution_clock::now();
-      std::vector<float> track_properties;
+
+      // Defining some network parameters
+      int inputDimensions = network.getInputDimensions();
+      int outputDimensions = network.getOutputDimensions();
+      const unsigned long track_prop_size = tracks.size() * 9;
+
+      network_prediction = std::vector<float>(outputDimensions * track_prop_size);
+      std::vector<float> init_network(inputDimensions, 1.);
+      network.evalNetwork(init_network); // This is an initialisation and might reduce the overhead of the model
+
+      std::vector<float> track_properties(inputDimensions * track_prop_size);
+      unsigned long counter_track_props = 0;
+
+      // Filling a std::vector<float> to be evaluated by the network
+      // Evaluation on single tracks brings huge overhead: Thus evaluation is done on one large vector
       for (int i = 0; i < 9; i++) { // Loop over particle number for which network correction is used
         for (auto const& trk : tracks) {
-          std::vector<float> net_tensor = network.createInputFromTrack(trk, i);
-          for (auto value : net_tensor) {
-            track_properties.push_back(value);
-          }
+          track_properties[counter_track_props] = trk.tpcInnerParam();
+          track_properties[counter_track_props + 1] = trk.tgl();
+          track_properties[counter_track_props + 2] = trk.signed1Pt();
+          track_properties[counter_track_props + 3] = o2::track::pid_constants::sMasses[i];
+          track_properties[counter_track_props + 4] = collisions.iteratorAt(trk.collisionId()).multTPC() / 11000.;
+          track_properties[counter_track_props + 5] = std::sqrt(159. / trk.tpcNClsFound());
+          counter_track_props += inputDimensions;
         }
       }
-      const unsigned long track_prop_size = tracks.size() * 9;
       auto stop_overhead = std::chrono::high_resolution_clock::now();
       float duration_overhead = std::chrono::duration<float, std::ratio<1, 1000000000>>(stop_overhead - start_overhead).count();
       float time_per_track_overhead = duration_overhead / track_prop_size; // There are n (typically n=7) variables in each track which are being extracted in track_properties. Each network evaluation takes time_per_track_overhead/9 nano-seconds
-      LOG(info) << "Time per track (overhead): " << time_per_track_overhead << "ns ; Overhead total: " << duration_overhead / 1000000000 << "s";
+      LOG(info) << "Neural Network for the TPC PID response: Time per track (overhead): " << time_per_track_overhead << "ns ; Overhead total (all tracks): " << duration_overhead / 1000000000 << "s";
 
+      // Timing the network evaluation: Wall-time, not CPU time
       auto start_network = std::chrono::high_resolution_clock::now();
       float* output_network = network.evalNetwork(track_properties);
-      for (unsigned long i = 0; i < track_prop_size; i++) {
-        network_prediction.push_back(output_network[i]);
-      }
       track_properties.clear();
+      for (unsigned long i = 0; i < (outputDimensions * track_prop_size); i += outputDimensions) {
+        for (int j = 0; j < outputDimensions; j++) {
+          network_prediction[i + j] = output_network[i + j];
+        }
+      }
       auto stop_network = std::chrono::high_resolution_clock::now();
       float duration_network = std::chrono::duration<float, std::ratio<1, 1000000000>>(stop_network - start_network).count();
       float time_per_track_net = duration_network / track_prop_size;
-      LOG(info) << "Time per track (net): " << time_per_track_net << "ns ; Network total: " << duration_network / 1000000000 << "s"; // The time per track but with 9 particle mass hypotheses: So actual time per track is (time_per_track_net / 9)
-
-      // Uncomment if you want to check example-outputs of the netwwork:
-      // for(int i=0; i<100; i++){
-      //   LOG(info) << "Output " << i << ": " << network_prediction[i] << " ; Input: [" << track_properties[7*i + 0] << ", " << track_properties[7*i + 1] << ", " << track_properties[7*i + 2] << ", " << track_properties[7*i + 3] << ", " << track_properties[7*i + 4] << ", " << track_properties[7*i + 5] << ", " << track_properties[7*i + 6] << "]";
-      // }
+      LOG(info) << "Neural Network for the TPC PID response: Time per track (eval): " << time_per_track_net << "ns ; Evaluation total (all tracks): " << duration_network / 1000000000 << "s"; // The time per track but with 9 particle mass hypotheses: So actual time per track is (time_per_track_net / 9)
     }
 
     int lastCollisionId = -1; // Last collision ID analysed
@@ -222,8 +265,26 @@ struct tpcPidFull {
         }
 
         if (useNetworkCorrection) {
-          table(response.GetExpectedSigma(collisions.iteratorAt(trk.collisionId()), trk, pid),
-                (trk.tpcSignal() - (network_prediction[count_tracks + tracks_size * pid]) * response.GetExpectedSignal(trk, pid)) / response.GetExpectedSigma(collisions.iteratorAt(trk.collisionId()), trk, pid));
+
+          // Here comes the application of the network. The output--dimensions of the network dtermine the application: 1: mean, 2: sigma, 3: sigma asymmetric
+          // For now only the option 2: sigma will be used. The other options are kept if there would be demand later on
+          if (network.getOutputDimensions() == 1) {
+            table(response.GetExpectedSigma(collisions.iteratorAt(trk.collisionId()), trk, pid),
+                  (trk.tpcSignal() - network_prediction[count_tracks + tracks_size * pid] * response.GetExpectedSignal(trk, pid)) / response.GetExpectedSigma(collisions.iteratorAt(trk.collisionId()), trk, pid));
+          } else if (network.getOutputDimensions() == 2) {
+            table((network_prediction[2 * (count_tracks + tracks_size * pid) + 1] - network_prediction[2 * (count_tracks + tracks_size * pid)]) * response.GetExpectedSignal(trk, pid),
+                  (trk.tpcSignal() / response.GetExpectedSignal(trk, pid) - network_prediction[2 * (count_tracks + tracks_size * pid)]) / (network_prediction[2 * (count_tracks + tracks_size * pid) + 1] - network_prediction[2 * (count_tracks + tracks_size * pid)]));
+          } else if (network.getOutputDimensions() == 3) {
+            if (trk.tpcSignal() / response.GetExpectedSignal(trk, pid) >= network_prediction[3 * (count_tracks + tracks_size * pid)]) {
+              table((network_prediction[3 * (count_tracks + tracks_size * pid) + 1] - network_prediction[3 * (count_tracks + tracks_size * pid)]) * response.GetExpectedSignal(trk, pid),
+                    (trk.tpcSignal() / response.GetExpectedSignal(trk, pid) - network_prediction[3 * (count_tracks + tracks_size * pid)]) / (network_prediction[3 * (count_tracks + tracks_size * pid) + 1] - network_prediction[3 * (count_tracks + tracks_size * pid)]));
+            } else {
+              table((network_prediction[3 * (count_tracks + tracks_size * pid)] - network_prediction[3 * (count_tracks + tracks_size * pid) + 2]) * response.GetExpectedSignal(trk, pid),
+                    (trk.tpcSignal() / response.GetExpectedSignal(trk, pid) - network_prediction[3 * (count_tracks + tracks_size * pid)]) / (network_prediction[3 * (count_tracks + tracks_size * pid)] - network_prediction[3 * (count_tracks + tracks_size * pid) + 2]));
+            }
+          } else {
+            LOGF(fatal, "Network output-dimensions incompatible!");
+          }
         } else {
           table(response.GetExpectedSigma(collisions.iteratorAt(trk.collisionId()), trk, pid),
                 response.GetNumberOfSigma(collisions.iteratorAt(trk.collisionId()), trk, pid));
