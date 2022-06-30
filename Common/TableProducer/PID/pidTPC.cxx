@@ -69,6 +69,7 @@ struct tpcPid {
   // Network correction for TPC PID response
   Network network;
   std::string networkPathOnAlien = ""; // Will be set by the user or automatically if TPCPIDResponse object is fetched from CCDB
+  std::string currentRunNumber = "";
 
   // Input parameters
   Service<o2::ccdb::BasicCCDBManager> ccdb;
@@ -82,6 +83,7 @@ struct tpcPid {
   Configurable<int> downloadNetworkFromAlien{"downloadNetworkFromAlien", 0, "Download network from AliEn (1) or use a local file (filepath must be provided by --networkPathLocally /path/to/file) (0)"};
   Configurable<std::string> networkPathLocally{"networkPathLocally", "network.onnx", "Path to local .onnx file containing the network, if downloadNetworkFromAlien is True, the network will be downloaded to this directory"};
   Configurable<std::string> networkPathAlien{"networkPathAlien", "", "If the network file must be downloaded from AliEn and a local file for the TPCPIDResponse-object is used, then this varibale must be set to the path on AliEn, generally: alien:///alice/cern.ch/user/c/csonnabe/TPC/NN_PID/network_[runnumber].onnx ; See https://alimonitor.cern.ch/catalogue/#/alice/cern.ch/user/c/csonnabe/TPC/NN_PID"};
+  Configurable<bool> enableNetworkOptimizations{"enableNetworkOptimizations", 1, "if the neural network correction is used, this enables GraphOptimizationLevel::ORT_ENABLE_EXTENDED in the ONNX session"};
   // Configuration flags to include and exclude particle hypotheses
   Configurable<int> pidEl{"pid-el", -1, {"Produce PID information for the Electron mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
   Configurable<int> pidMu{"pid-mu", -1, {"Produce PID information for the Muon mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
@@ -163,8 +165,8 @@ struct tpcPid {
             if (headers.count("runnumber") == 0) {
               LOG(fatal) << "Cannot find run number in metadata of TPCPIDResponse object with path: " << path << " and timestamp: " << time << " !";
             }
-            std::string runnumber = headers["runnumber"].c_str();
-            networkPathOnAlien = "alien:///alice/cern.ch/user/c/csonnabe/TPC/NN_PID/network_" + runnumber + ".onnx";
+            currentRunNumber = headers["runnumber"].c_str();
+            networkPathOnAlien = "alien:///alice/cern.ch/user/c/csonnabe/TPC/NN_PID/network_" + currentRunNumber + ".onnx";
           }
         }
       }
@@ -172,7 +174,7 @@ struct tpcPid {
       Network temp_net(networkPathLocally.value,
                        downloadNetworkFromAlien.value,
                        networkPathOnAlien,
-                       true);
+                       enableNetworkOptimizations.value);
       network = temp_net;
     }
   }
@@ -202,6 +204,20 @@ struct tpcPid {
     if (useNetworkCorrection) {
 
       auto start_overhead = std::chrono::high_resolution_clock::now();
+
+      auto bc = collisions.iteratorAt(tracks.iteratorAt(0).collisionId()).bc_as<aod::BCsWithTimestamps>();
+      if(std::stoi(currentRunNumber.c_str())!=bc.runNumber()){
+
+        currentRunNumber = bc.runNumber();
+        networkPathOnAlien = "alien:///alice/cern.ch/user/c/csonnabe/TPC/NN_PID/network_" + currentRunNumber + ".onnx";
+        Network temp_net(networkPathLocally.value,
+                         true,
+                         networkPathOnAlien,
+                         enableNetworkOptimizations.value);
+
+        network = temp_net;
+
+      }
 
       // Defining some network parameters
       int inputDimensions = network.getInputDimensions();
