@@ -151,10 +151,9 @@ struct tpcPidFull {
     if (!useNetworkCorrection) {
       return;
     } else {
-      if(downloadNetworkFromAlien.value && networkPathAlien.value==""){
+      if (downloadNetworkFromAlien.value && networkPathAlien.value == "") {
         return;
-      }
-      else{
+      } else {
         Network temp_net(networkPathLocally.value,
                          downloadNetworkFromAlien.value,
                          networkPathAlien.value,
@@ -190,7 +189,7 @@ struct tpcPidFull {
 
       auto start_overhead = std::chrono::high_resolution_clock::now();
 
-      if (downloadNetworkFromAlien.value && networkPathAlien.value=="") {
+      if (downloadNetworkFromAlien.value && networkPathAlien.value == "") {
 
         auto bc = collisions.iteratorAt(tracks.iteratorAt(0).collisionId()).bc_as<aod::BCsWithTimestamps>();
 
