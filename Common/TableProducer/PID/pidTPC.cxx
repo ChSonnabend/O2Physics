@@ -206,7 +206,7 @@ struct tpcPid {
       auto start_overhead = std::chrono::high_resolution_clock::now();
 
       auto bc = collisions.iteratorAt(tracks.iteratorAt(0).collisionId()).bc_as<aod::BCsWithTimestamps>();
-      if(std::stoi(currentRunNumber.c_str())!=bc.runNumber()){
+      if (std::stoi(currentRunNumber.c_str()) != bc.runNumber()) {
 
         currentRunNumber = bc.runNumber();
         networkPathOnAlien = "alien:///alice/cern.ch/user/c/csonnabe/TPC/NN_PID/network_" + currentRunNumber + ".onnx";
@@ -216,7 +216,6 @@ struct tpcPid {
                          enableNetworkOptimizations.value);
 
         network = temp_net;
-
       }
 
       // Defining some network parameters
