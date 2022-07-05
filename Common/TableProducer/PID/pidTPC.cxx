@@ -31,6 +31,7 @@
 #include "Framework/AnalysisDataModel.h"
 #include "Common/DataModel/Multiplicity.h"
 #include "TableHelper.h"
+#include "CCDB/CcdbApi.h"
 #include "Common/TableProducer/PID/pidTPCML.h"
 #include "DPG/Tasks/qaPIDTPC.h"
 
@@ -72,6 +73,7 @@ struct tpcPid {
 
   // Input parameters
   Service<o2::ccdb::BasicCCDBManager> ccdb;
+  o2::ccdb::CcdbApi ccdbApi;
   Configurable<std::string> paramfile{"param-file", "", "Path to the parametrization object, if emtpy the parametrization is not taken from file"};
   Configurable<std::string> url{"ccdb-url", "http://alice-ccdb.cern.ch", "url of the ccdb repository"};
   Configurable<std::string> ccdbPath{"ccdbPath", "Analysis/PID/TPC/Response", "Path of the TPC parametrization on the CCDB"};
@@ -113,6 +115,7 @@ struct tpcPid {
     enableFlag("He", pidHe);
     enableFlag("Al", pidAl);
 
+    ccdbApi.init(url);
     const TString fname = paramfile.value;
     if (fname != "") { // Loading the parametrization from file
       LOGP(info, "Loading TPC response from file {}", fname);
@@ -192,6 +195,8 @@ struct tpcPid {
         if (currentRunNumber != bc.runNumber()) { // fetches network only if the runnumbers change
           currentRunNumber = bc.runNumber();
           LOG(info) << "Fetching network for runnumber: " << currentRunNumber;
+          std::map<std::string, std::string> metadata;
+          ccdbApi.retrieveBlob(networkPathAlien.value, "", metadata, timestamp, false, "lastnet.root");
           Network temp_net(networkPathLocally.value,
                            downloadNetworkFromAlien.value,
                            Form("%s/network_%i.onnx", (networkSetAlienDir.value).c_str(), currentRunNumber),
