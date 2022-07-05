@@ -196,7 +196,7 @@ struct tpcPid {
           currentRunNumber = bc.runNumber();
           LOG(info) << "Fetching network for runnumber: " << currentRunNumber;
           std::map<std::string, std::string> metadata;
-          ccdbApi.retrieveBlob(networkPathAlien.value, "", metadata, timestamp, false, "lastnet.root");
+          ccdbApi.retrieveBlob(networkPathAlien.value, ".", metadata, timestamp, false, "lastnet.onnx");
           Network temp_net(networkPathLocally.value,
                            downloadNetworkFromAlien.value,
                            Form("%s/network_%i.onnx", (networkSetAlienDir.value).c_str(), currentRunNumber),
