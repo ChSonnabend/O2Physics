@@ -34,6 +34,7 @@
 #include "TableHelper.h"
 #include "Common/TableProducer/PID/pidTPCML.h"
 #include "DPG/Tasks/AOTTrack/PID/qaPIDTPC.h"
+#include <thread>
 
 using namespace o2;
 using namespace o2::framework;
@@ -114,6 +115,9 @@ struct tpcPidFull {
     enableFlag("Tr", pidTr);
     enableFlag("He", pidHe);
     enableFlag("Al", pidAl);
+
+    int numThreads = std::thread::hardware_concurrency();
+    LOGP(info, "Number of threads: ", numThreads);
 
     const TString fname = paramfile.value;
     if (fname != "") { // Loading the parametrization from file
