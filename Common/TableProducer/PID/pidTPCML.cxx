@@ -41,7 +41,7 @@ std::string Network::printShape(const std::vector<int64_t>& v)
 
 Network::Network(std::string path,
                  bool enableOptimization = true,
-                 int setNumThreads = 0)
+                 int numThreads = 0)
 {
 
   /*
@@ -59,8 +59,9 @@ Network::Network(std::string path,
   if (enableOptimization) {
     sessionOptions.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_EXTENDED);
   }
-  if(setNumThreads>0){
-    sessionOptions.SetIntraOpNumThreads(setNumThreads);
+  if(numThreads>0){
+    // Setting the number of threads, potentially try: unsigned int nThreads = std::thread::hardware_concurrency();
+    sessionOptions.SetIntraOpNumThreads(numThreads);
   }
 
   mSession.reset(new Ort::Experimental::Session{*mEnv, path, sessionOptions});
@@ -88,7 +89,7 @@ Network::Network(std::string path,
                  unsigned long start,
                  unsigned long end,
                  bool enableOptimization = true,
-                 int setNumThreads = 0)
+                 int numThreads = 0)
 {
 
   /*
@@ -106,8 +107,8 @@ Network::Network(std::string path,
   if (enableOptimization) {
     sessionOptions.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_EXTENDED);
   }
-  if(setNumThreads>0){
-    sessionOptions.SetIntraOpNumThreads(setNumThreads);
+  if(numThreads>0){
+    sessionOptions.SetIntraOpNumThreads(numThreads);
   }
 
   mSession.reset(new Ort::Experimental::Session{*mEnv, path, sessionOptions});
