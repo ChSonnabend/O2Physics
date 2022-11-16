@@ -21,6 +21,7 @@
 
 // ROOT includes
 #include "TFile.h"
+#include "TSystem.h"
 
 // O2 includes
 #include "Framework/AnalysisTask.h"
@@ -116,9 +117,6 @@ struct tpcPidFull {
     enableFlag("He", pidHe);
     enableFlag("Al", pidAl);
 
-    int numThreads = std::thread::hardware_concurrency();
-    LOGP(info, "Number of threads: ", numThreads);
-
     const TString fname = paramfile.value;
     if (fname != "") { // Loading the parametrization from file
       LOGP(info, "Loading TPC response from file {}", fname);
@@ -151,6 +149,17 @@ struct tpcPidFull {
       return;
     } else {
       ccdbApi.init(url);
+
+      const char* test_env = gSystem->Getenv("ALIEN_JDL_CPUCORES");
+      if(test_env!=NULL){
+        std::string test_var = "Test variable: ";
+        std::string test_env_var = test_env;
+        LOGP(info, test_var + test_env_var);
+      }
+      else{
+        LOGP(info, "Test variable is NULL!");
+      }
+
       if (!autofetchNetworks) {
         if (ccdbTimestamp > 0) {
           /// Fetching network for specific timestamp
