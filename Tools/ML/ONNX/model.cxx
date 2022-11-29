@@ -134,7 +134,7 @@ bool OnnxModel::fetchFromCCDB(std::string path_from, int64_t ccdbTimestamp, std:
 
   bool retrieve_success = downloadToFile(path_from, ccdbTimestamp, path_to);
 
-  if(retrieve_success) {
+  if (retrieve_success) {
     modelPath = path_to;
 
     if (checkHyperloop()) {
