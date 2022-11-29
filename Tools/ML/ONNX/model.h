@@ -24,6 +24,8 @@
 #include <onnxruntime/core/session/experimental_onnxruntime_cxx_api.h>
 #include <vector>
 #include <string>
+#include <memory>
+#include <map>
 
 // ROOT includes
 #include "TSystem.h"
@@ -43,7 +45,7 @@ class OnnxModel
 
  public:
   OnnxModel() = default;
-  OnnxModel(std::string);
+  explicit OnnxModel(std::string);
   ~OnnxModel() = default;
   OnnxModel& operator=(OnnxModel&);
 

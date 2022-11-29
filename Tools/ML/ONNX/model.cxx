@@ -37,7 +37,6 @@ std::string OnnxModel::printShape(const std::vector<int64_t>& v)
 
 OnnxModel& OnnxModel::operator=(OnnxModel& inst)
 {
-
   mEnv = inst.mEnv;
   mSession = inst.mSession;
 
@@ -74,7 +73,6 @@ bool OnnxModel::checkHyperloop()
 
 OnnxModel::OnnxModel(std::string path)
 {
-
   LOG(info) << "--- ONNX-ML model ---";
 
   modelPath = path;
@@ -105,28 +103,11 @@ OnnxModel::OnnxModel(std::string path)
 
 bool OnnxModel::fetchFromCCDB(std::string path_from, int64_t ccdbTimestamp, std::string path_to = "model.onnx")
 {
-
   LOG(info) << "--- ONNX-ML model ---";
 
   // e.g. path_from = "Analysis/PID/TPC/ML"
 
-  o2::ccdb::CcdbApi ccdbApi;
-  ccdbApi.init(ccdbUrl);
-
-  std::map<std::string, std::string> metadata;
-  bool retrieve_success = ccdbApi.retrieveBlob(path_from, ".", metadata, ccdbTimestamp, false, path_to);
-  std::map<std::string, std::string> headers = ccdbApi.retrieveHeaders(path_from, metadata, ccdbTimestamp);
-
-  if (headers.count("Valid-From") == 0) {
-    LOG(info) << "Valid-From not found in metadata";
-  } else {
-    valid_until = strtoul(headers["Valid-From"].c_str(), NULL, 0);
-  }
-  if (headers.count("Valid-Until") == 0) {
-    LOG(info) << "Valid-Until not found in metadata";
-  } else {
-    strtoul(headers["Valid-Until"].c_str(), NULL, 0);
-  }
+  bool retrieve_success = downloadToFile(path_from, ccdbTimestamp, path_to);
 
   if (checkHyperloop()) {
     sessionOptions.SetIntraOpNumThreads(activeThreads);
@@ -140,7 +121,6 @@ bool OnnxModel::fetchFromCCDB(std::string path_from, int64_t ccdbTimestamp, std:
 
 bool OnnxModel::downloadToFile(std::string path_from, int64_t ccdbTimestamp, std::string path_to = "model.onnx")
 {
-
   // e.g. path_from = "Analysis/PID/TPC/ML"
 
   o2::ccdb::CcdbApi ccdbApi;
@@ -166,7 +146,6 @@ bool OnnxModel::downloadToFile(std::string path_from, int64_t ccdbTimestamp, std
 
 float* OnnxModel::evalModel(std::vector<Ort::Value> input)
 {
-
   try {
     LOG(debug) << "Shape of input (tensor): " << printShape(input[0].GetTensorTypeAndShapeInfo().GetShape());
 
