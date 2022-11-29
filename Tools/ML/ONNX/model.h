@@ -50,8 +50,8 @@ class OnnxModel
   OnnxModel& operator=(OnnxModel&);
 
   // IO
-  bool fetchFromCCDB(std::string, int64_t, std::string);
   bool downloadToFile(std::string, int64_t, std::string);
+  bool fetchFromCCDB(std::string, int64_t, std::string);
   float* evalModel(std::vector<Ort::Value>);
   float* evalModel(std::vector<float>);
 

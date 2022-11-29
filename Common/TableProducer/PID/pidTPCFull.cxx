@@ -224,7 +224,7 @@ struct tpcPidFull {
         auto bc = collisions.iteratorAt(0).bc_as<aod::BCsWithTimestamps>();
         if (bc.timestamp() < network.getValidityFrom() || bc.timestamp() > network.getValidityUntil()) { // fetches network only if the runnumbers change
           LOG(info) << "Fetching network for timestamp: " << bc.timestamp();
-          bool fetchSuccess = network.fetchFromCCDB(networkPathCCDB.value, ccdbTimestamp.value, networkPathLocally.value);
+          bool fetchSuccess = network.fetchFromCCDB(networkPathCCDB, bc.timestamp(), networkPathLocally);
           if (fetchSuccess) {
             if (enableNetworkOptimizations) {
               Ort::SessionOptions* sessOpts = network.getSessionOptions();

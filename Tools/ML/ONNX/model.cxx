@@ -101,24 +101,6 @@ OnnxModel::OnnxModel(std::string path)
   }
 }
 
-bool OnnxModel::fetchFromCCDB(std::string path_from, int64_t ccdbTimestamp, std::string path_to = "model.onnx")
-{
-  LOG(info) << "--- ONNX-ML model ---";
-
-  // e.g. path_from = "Analysis/PID/TPC/ML"
-
-  bool retrieve_success = downloadToFile(path_from, ccdbTimestamp, path_to);
-
-  if (checkHyperloop()) {
-    sessionOptions.SetIntraOpNumThreads(activeThreads);
-  }
-
-  mEnv = std::make_shared<Ort::Env>(ORT_LOGGING_LEVEL_WARNING, "onnx-model");
-  mSession.reset(new Ort::Experimental::Session{*mEnv, path_to, sessionOptions});
-
-  return retrieve_success;
-}
-
 bool OnnxModel::downloadToFile(std::string path_from, int64_t ccdbTimestamp, std::string path_to = "model.onnx")
 {
   // e.g. path_from = "Analysis/PID/TPC/ML"
@@ -139,6 +121,33 @@ bool OnnxModel::downloadToFile(std::string path_from, int64_t ccdbTimestamp, std
     LOG(info) << "Valid-Until not found in metadata";
   } else {
     LOG(info) << "Timestamp, valid until: " << headers["Valid-Until"].c_str();
+  }
+
+  return retrieve_success;
+}
+
+bool OnnxModel::fetchFromCCDB(std::string path_from, int64_t ccdbTimestamp, std::string path_to = "model.onnx")
+{
+  LOG(info) << "--- ONNX-ML model ---";
+
+  // e.g. path_from = "Analysis/PID/TPC/ML"
+
+  bool retrieve_success = downloadToFile(path_from, ccdbTimestamp, path_to);
+
+  if(retrieve_success) {
+    modelPath = path_to;
+
+    if (checkHyperloop()) {
+      sessionOptions.SetIntraOpNumThreads(activeThreads);
+    }
+
+    mEnv = std::make_shared<Ort::Env>(ORT_LOGGING_LEVEL_WARNING, "onnx-model");
+    mSession.reset(new Ort::Experimental::Session{*mEnv, path_to, sessionOptions});
+
+    mInputNames = mSession->GetInputNames();
+    mInputShapes = mSession->GetInputShapes();
+    mOutputNames = mSession->GetOutputNames();
+    mOutputShapes = mSession->GetOutputShapes();
   }
 
   return retrieve_success;
