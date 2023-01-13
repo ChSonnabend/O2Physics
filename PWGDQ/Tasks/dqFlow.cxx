@@ -16,12 +16,6 @@
 ///       o2-analysis-timestamp --aod-file AO2D.root -b | o2-analysis-event-selection -b | o2-analysis-multiplicity-table -b | o2-analysis-centrality-table -b | o2-analysis-fdd-converter -b | o2-analysis-trackselection -b | o2-analysis-trackextension -b | o2-analysis-pid-tpc-full -b | o2-analysis-pid-tof-full -b | o2-analysis-pid-tof-base -b | o2-analysis-pid-tof-beta -b | o2-analysis-dq-flow -b
 ///       tested (June 2, 2022) on AO2D.root files from train production 242
 
-#include <TH1F.h>
-#include <THashList.h>
-#include <TString.h>
-#include <iostream>
-#include <vector>
-#include <TRandom3.h>
 #include "CCDB/BasicCCDBManager.h"
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
@@ -36,14 +30,20 @@
 #include "PWGDQ/Core/HistogramsLibrary.h"
 #include "PWGDQ/Core/CutsLibrary.h"
 #include "PWGDQ/Core/MixingLibrary.h"
-#include "PWGCF/GenericFramework/GFW.h"
-#include "PWGCF/GenericFramework/GFWCumulant.h"
-#include "PWGCF/GenericFramework/FlowContainer.h"
-#include "PWGCF/GenericFramework/GFWWeights.h"
+#include "GFW.h"
+#include "GFWCumulant.h"
+#include "FlowContainer.h"
+#include "GFWWeights.h"
+#include <TRandom3.h>
 #include "Common/DataModel/EventSelection.h"
 #include "Common/Core/TrackSelection.h"
 #include "Common/DataModel/TrackSelectionTables.h"
 #include "Common/DataModel/Centrality.h"
+#include <TH1F.h>
+#include <THashList.h>
+#include <TString.h>
+#include <iostream>
+#include <vector>
 
 using std::cout;
 using std::endl;
@@ -71,18 +71,19 @@ using MyTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TrackSelection>>;
 
 using MyEvents = soa::Join<aod::Collisions, aod::EvSels>;
 using MyEventsWithCent = soa::Join<aod::Collisions, aod::EvSels, aod::CentRun2V0Ms>;
-using MyEventsWithCentRun3 = soa::Join<aod::Collisions, aod::EvSels, aod::CentFT0Cs>;
+// using MyEventsWithCentRun3 = soa::Join<aod::Collisions, aod::EvSels, aod::CentFT0Ms>;
+using MyEventsWithCentRun3 = soa::Join<aod::Collisions, aod::EvSels>;
 
 using MyMuons = aod::FwdTracks;
 using MyMuonsWithCov = soa::Join<aod::FwdTracks, aod::FwdTracksCov>;
 
 constexpr static uint32_t gkEventFillMap = VarManager::ObjTypes::BC | VarManager::ObjTypes::Collision | VarManager::ObjTypes::CollisionCent;
-constexpr static uint32_t gkEventFillMapRun3 = VarManager::ObjTypes::BC | VarManager::ObjTypes::Collision | VarManager::ObjTypes::CollisionCentRun3;
+constexpr static uint32_t gkEventFillMapRun3 = VarManager::ObjTypes::BC | VarManager::ObjTypes::Collision;
 constexpr static uint32_t gkTrackFillMap = VarManager::ObjTypes::Track | VarManager::ObjTypes::TrackExtra | VarManager::ObjTypes::TrackDCA | VarManager::ObjTypes::TrackSelection | VarManager::ObjTypes::TrackPID;
 
 void DefineHistograms(HistogramManager* histMan, TString histClasses);
 
-struct DQEventQvector {
+struct AnalysisQvector {
   Produces<ReducedEventsQvector> eventQvector;
 
   Configurable<std::string> fConfigEventCuts{"cfgEventCuts", "eventStandard", "Event selection"};
@@ -97,7 +98,7 @@ struct DQEventQvector {
   Configurable<float> fConfigCutEtaMax{"cfgCutEtaMax", 0.8f, "Eta max range for tracks"};
   Configurable<float> fConfigEtaLimitMin{"cfgEtaLimitMin", -0.4f, "Eta gap min separation, only if using subEvents"};
   Configurable<float> fConfigEtaLimitMax{"cfgEtaLimitMax", 0.4f, "Eta gap max separation, only if using subEvents"};
-  Configurable<uint8_t> fConfigNPow{"cfgNPow", 0, "Power of weights for Q vector"};
+  Configurable<int> fConfigNPow{"cfgNPow", 0, "Power of weights for Q vector"};
 
   // Access to the efficiencies and acceptances from CCDB
   Configurable<std::string> fConfigEfficiency{"cfgEfficiency", "", "CCDB path to efficiency object"};
@@ -105,7 +106,7 @@ struct DQEventQvector {
   Service<ccdb::BasicCCDBManager> ccdb;
   Configurable<std::string> fConfigURL{"ccdb-url", "http://ccdb-test.cern.ch:8080", "url of the ccdb repository"};
   Configurable<std::string> fConfigCCDBPath{"ccdb-path", "Users/lm", "base path to the ccdb object"};
-  Configurable<int64_t> fConfigNoLaterThan{"ccdb-no-later-than", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count(), "latest acceptable timestamp of creation for the object"};
+  Configurable<long> fConfigNoLaterThan{"ccdb-no-later-than", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count(), "latest acceptable timestamp of creation for the object"};
 
   // Configurables for FlowContainer (e.g charged particles pt-differential v22, v23, ...)
   //  ConfigurableAxis axisPhi{"axisPhi", {60, 0.0, constants::math::TwoPI}, "phi axis for histograms"};
@@ -116,7 +117,8 @@ struct DQEventQvector {
 
   Filter trackFilter = (nabs(aod::track::eta) <= fConfigCutEtaMax) && (aod::track::pt > fConfigCutPtMin) && (aod::track::pt < fConfigCutPtMax) && ((requireGlobalTrackInFilter()) || (aod::track::isGlobalTrackSDD == (uint8_t) true));
 
-  Filter fwdFilter = (aod::fwdtrack::eta < -2.45f) && (aod::fwdtrack::eta > -3.6f);
+  Partition<aod::MFTTracks> sample = (aod::fwdtrack::eta <= -2.4f) && (aod::fwdtrack::eta >= -3.6f);
+  Filter fwdFilter = (aod::fwdtrack::eta < -2.4f) && (aod::fwdtrack::eta > -3.6f) && (o2::aod::fwdtrack::pt >= fConfigCutPtMin);
 
   struct Config {
     TH1D* mEfficiency = nullptr;
@@ -222,7 +224,7 @@ struct DQEventQvector {
     //      return;
     //    }
     //    bool DisableOverlap = kFALSE;
-    //    uint8_t nAxisPtBins = 31;
+    //    int nAxisPtBins = 31;
     //    for (int i = 1; i <= nAxisPtBins; i++) {
     //      dnx = fGFW->Calculate(corrconf, 0, kTRUE, DisableOverlap).Re();
     //      if (dnx == 0) {
@@ -290,9 +292,9 @@ struct DQEventQvector {
     //      FillFC(corrconfigs.at(l_ind), collision.centRun2V0M(), l_Random, fillFlag, DQEventFlag);
     //    };
 
-    uint8_t nentriesN = 0.0;
-    uint8_t nentriesP = 0.0;
-    uint8_t nentriesFull = 0.0;
+    int nentriesN = 0.0;
+    int nentriesP = 0.0;
+    int nentriesFull = 0.0;
     TComplex Q2vecN;
     TComplex Q2vecP;
     TComplex Q2vecFull;
@@ -338,21 +340,16 @@ struct DQEventQvector {
     }
   }
 
-  // Process to fill Q vector using barrel tracks in a reduced event table for barrel/muon tracks flow related analyses Run 2
-  void processBarrelQvectorRun2(MyEventsWithCent::iterator const& collisions, aod::BCs const& bcs, soa::Filtered<MyBarrelTracks> const& tracks)
+  // Process to fill Q vector using barrel tracks in a reduced event table for barrel/muon tracks flow related analyses
+  void processBarrelQvector(MyEventsWithCent::iterator const& collisions, aod::BCs const& bcs, soa::Filtered<MyBarrelTracks> const& tracks)
   {
     runFillQvector<gkEventFillMap, gkTrackFillMap>(collisions, bcs, tracks);
   }
 
-  // Process to fill Q vector using barrel tracks in a reduced event table for barrel/muon tracks flow related analyses Run 3
-  void processBarrelQvector(MyEventsWithCentRun3::iterator const& collisions, aod::BCs const& bcs, soa::Filtered<MyBarrelTracks> const& tracks)
-  {
-    runFillQvector<gkEventFillMapRun3, gkTrackFillMap>(collisions, bcs, tracks);
-  }
-
-  // Process to fill Q vector using forward tracks in a reduced event table for barrel/muon tracks flow related analyses Run 3
+  // Process to fill Q vector  using forward tracks in a reduced event table for barrel/muon tracks flow related analyses
   void processForwardQvector(MyEventsWithCentRun3::iterator const& collisions, aod::BCs const& bcs, soa::Filtered<aod::MFTTracks> const& tracks)
   {
+    // Need to add gkEventFillMap with proper centrality values
     runFillQvector<gkEventFillMapRun3, 0u>(collisions, bcs, tracks);
   }
 
@@ -362,16 +359,15 @@ struct DQEventQvector {
     // do nothing
   }
 
-  PROCESS_SWITCH(DQEventQvector, processBarrelQvectorRun2, "Run q-vector task on barrel tracks for Run2", false);
-  PROCESS_SWITCH(DQEventQvector, processBarrelQvector, "Run q-vector task on barrel tracks for Run3", false);
-  PROCESS_SWITCH(DQEventQvector, processForwardQvector, "Run q-vector task on forward tracks for Run3", false);
-  PROCESS_SWITCH(DQEventQvector, processDummy, "Dummy function", false);
+  PROCESS_SWITCH(AnalysisQvector, processBarrelQvector, "Run q-vector task on barrel tracks", false);
+  PROCESS_SWITCH(AnalysisQvector, processForwardQvector, "Run q-vector task on forward tracks for Run3", false);
+  PROCESS_SWITCH(AnalysisQvector, processDummy, "Dummy function", false);
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<DQEventQvector>(cfgc)};
+    adaptAnalysisTask<AnalysisQvector>(cfgc)};
 }
 
 void DefineHistograms(HistogramManager* histMan, TString histClasses)
