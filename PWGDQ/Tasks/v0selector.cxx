@@ -229,53 +229,135 @@ struct v0selector {
   Configurable<float> cutNsigmaPrTPC{"cutNsigmaPrTPC", 5.0, "cutNsigmaPrTPC"};
   Configurable<float> cutNsigmaKaTPC{"cutNsigmaKaTPC", 5.0, "cutNsigmaKaTPC"};
 
+    // Histogram binning configurables
+    // V0 and Cascade candidate counters
+    Configurable<int> nBinsV0Candidate{"nBinsV0Candidate", 2, "Number of bins for V0 candidate histogram"};
+    Configurable<float> minV0Candidate{"minV0Candidate", 0.5f, "Minimum value for V0 candidate histogram"};
+    Configurable<float> maxV0Candidate{"maxV0Candidate", 2.5f, "Maximum value for V0 candidate histogram"};
+
+    // Mass histograms
+    Configurable<int> nBinsRadius{"nBinsRadius", 900, "Number of bins for radius axis in mass histograms"};
+    Configurable<float> minRadius{"minRadius", 0.0f, "Minimum radius for mass histograms"};
+    Configurable<float> maxRadius{"maxRadius", 90.0f, "Maximum radius for mass histograms"};
+
+    Configurable<int> nBinsMassGamma{"nBinsMassGamma", 100, "Number of bins for gamma mass"};
+    Configurable<float> minMassGamma{"minMassGamma", 0.0f, "Minimum gamma mass"};
+    Configurable<float> maxMassGamma{"maxMassGamma", 0.1f, "Maximum gamma mass"};
+
+    Configurable<int> nBinsGammaRxy{"nBinsGammaRxy", 1800, "Number of bins for gamma Rxy histogram"};
+    Configurable<float> minGammaRxy{"minGammaRxy", -90.0f, "Minimum value for gamma Rxy"};
+    Configurable<float> maxGammaRxy{"maxGammaRxy", 90.0f, "Maximum value for gamma Rxy"};
+
+    Configurable<int> nBinsMassK0S{"nBinsMassK0S", 100, "Number of bins for K0S mass"};
+    Configurable<float> minMassK0S{"minMassK0S", 0.45f, "Minimum K0S mass"};
+    Configurable<float> maxMassK0S{"maxMassK0S", 0.55f, "Maximum K0S mass"};
+
+    Configurable<int> nBinsPt{"nBinsPt", 200, "Number of bins for pT histograms"};
+    Configurable<float> minPt{"minPt", 0.0f, "Minimum pT"};
+    Configurable<float> maxPtK0S{"maxPtK0S", 20.0f, "Maximum pT for K0S"};
+
+    Configurable<int> nBinsEta{"nBinsEta", 20, "Number of bins for eta"};
+    Configurable<float> minEta{"minEta", -1.0f, "Minimum eta"};
+    Configurable<float> maxEta{"maxEta", 1.0f, "Maximum eta"};
+
+    Configurable<int> nBinsPhi{"nBinsPhi", 63, "Number of bins for phi"};
+    Configurable<float> minPhi{"minPhi", 0.0f, "Minimum phi"};
+    Configurable<float> maxPhi{"maxPhi", 6.3f, "Maximum phi"};
+
+    Configurable<int> nBinsMassLambda{"nBinsMassLambda", 100, "Number of bins for Lambda mass"};
+    Configurable<float> minMassLambda{"minMassLambda", 1.05f, "Minimum Lambda mass"};
+    Configurable<float> maxMassLambda{"maxMassLambda", 1.15f, "Maximum Lambda mass"};
+
+    Configurable<int> nBinsV0Pt{"nBinsV0Pt", 100, "Number of bins for V0 pT"};
+    Configurable<float> maxV0Pt{"maxV0Pt", 10.0f, "Maximum V0 pT"};
+
+    Configurable<int> nBinsV0Radius{"nBinsV0Radius", 1000, "Number of bins for V0 radius"};
+    Configurable<float> maxV0Radius{"maxV0Radius", 100.0f, "Maximum V0 radius"};
+
+    Configurable<int> nBinsV0CosPA{"nBinsV0CosPA", 50, "Number of bins for V0 CosPA"};
+    Configurable<float> minV0CosPA{"minV0CosPA", 0.95f, "Minimum V0 CosPA"};
+    Configurable<float> maxV0CosPA{"maxV0CosPA", 1.0f, "Maximum V0 CosPA"};
+
+    Configurable<int> nBinsDCA{"nBinsDCA", 1000, "Number of bins for DCA histograms"};
+    Configurable<float> minDCA{"minDCA", -5.0f, "Minimum DCA"};
+    Configurable<float> maxDCA{"maxDCA", 5.0f, "Maximum DCA"};
+
+    Configurable<int> nBinsDCAV0Dau{"nBinsDCAV0Dau", 1000, "Number of bins for DCA V0 daughters"};
+    Configurable<float> maxDCAV0Dau{"maxDCAV0Dau", 10.0f, "Maximum DCA V0 daughters"};
+
+    Configurable<int> nBinsAPAlpha{"nBinsAPAlpha", 200, "Number of bins for AP plot alpha"};
+    Configurable<float> minAPAlpha{"minAPAlpha", -1.0f, "Minimum AP alpha"};
+    Configurable<float> maxAPAlpha{"maxAPAlpha", 1.0f, "Maximum AP alpha"};
+
+    Configurable<int> nBinsAPQt{"nBinsAPQt", 250, "Number of bins for AP plot qt"};
+    Configurable<float> minAPQt{"minAPQt", 0.0f, "Minimum AP qt"};
+    Configurable<float> maxAPQt{"maxAPQt", 0.25f, "Maximum AP qt"};
+
+    Configurable<int> nBinsV0Psi{"nBinsV0Psi", 100, "Number of bins for V0 Psi"};
+    Configurable<float> maxV0Psi{"maxV0Psi", 0.1f, "Maximum V0 Psi mass"};
+
+    // Cascade-specific histogram parameters
+    Configurable<int> nBinsCascPt{"nBinsCascPt", 100, "Number of bins for cascade pT"};
+    Configurable<float> maxCascPt{"maxCascPt", 10.0f, "Maximum cascade pT"};
+
+    Configurable<int> nBinsCascAPQt{"nBinsCascAPQt", 300, "Number of bins for cascade AP plot qt"};
+    Configurable<float> maxCascAPQt{"maxCascAPQt", 0.3f, "Maximum cascade AP qt"};
+
+    Configurable<int> nBinsCascRadius{"nBinsCascRadius", 1000, "Number of bins for cascade radius"};
+    Configurable<float> maxCascRadius{"maxCascRadius", 100.0f, "Maximum cascade radius"};
+
+    Configurable<int> nBinsMassOmega{"nBinsMassOmega", 100, "Number of bins for Omega mass"};
+    Configurable<float> minMassOmega{"minMassOmega", 1.62f, "Minimum Omega mass"};
+    Configurable<float> maxMassOmega{"maxMassOmega", 1.72f, "Maximum Omega mass"};
+
+
   HistogramRegistry registry{"registry"};
   void init(o2::framework::InitContext&)
   {
     if (fillhisto) {
-      registry.add("hV0Candidate", "hV0Candidate", HistType::kTH1F, {{2, 0.5f, 2.5f}});
-      registry.add("hCascCandidate", "hCascCandidate", HistType::kTH1F, {{2, 0.5f, 2.5f}});
-      registry.add("hMassGamma", "hMassGamma", HistType::kTH2F, {{900, 0.0f, 90.0f}, {100, 0.0f, 0.1f}});
-      registry.add("hGammaRxy", "hGammaRxy", HistType::kTH2F, {{1800, -90.0f, 90.0f}, {1800, -90.0f, 90.0f}});
-      registry.add("hMassK0S", "hMassK0S", HistType::kTH2F, {{900, 0.0f, 90.0f}, {100, 0.45, 0.55}});
-      registry.add("hMassK0SPt", "hMassK0SPt", HistType::kTH2F, {{200, 0.0f, 20.0f}, {100, 0.45, 0.55}});
-      registry.add("hMassK0SEta", "hMassK0SEta", HistType::kTH2F, {{20, -1, 1}, {100, 0.45, 0.55}});
-      registry.add("hMassK0SPhi", "hMassK0SPhi", HistType::kTH2F, {{63, 0, 6.3}, {100, 0.45, 0.55}});
-      registry.add("hMassLambda", "hMassLambda", HistType::kTH2F, {{900, 0.0f, 90.0f}, {100, 1.05, 1.15f}});
-      registry.add("hMassAntiLambda", "hAntiMassLambda", HistType::kTH2F, {{900, 0.0f, 90.0f}, {100, 1.05, 1.15f}});
-      registry.add("hV0Pt", "pT", HistType::kTH1F, {{100, 0.0f, 10}});
-      registry.add("hV0EtaPhi", "#eta vs. #varphi", HistType::kTH2F, {{63, 0, 6.3}, {20, -1.0f, 1.0f}});
-      registry.add("hV0Radius", "hV0Radius", HistType::kTH1F, {{1000, 0.0f, 100.0f}});
-      registry.add("hV0CosPA", "hV0CosPA", HistType::kTH1F, {{50, 0.95f, 1.0f}});
-      registry.add("hDCAxyPosToPV", "hDCAxyPosToPV", HistType::kTH1F, {{1000, -5.0f, 5.0f}});
-      registry.add("hDCAxyNegToPV", "hDCAxyNegToPV", HistType::kTH1F, {{1000, -5.0f, 5.0f}});
-      registry.add("hDCAzPosToPV", "hDCAzPosToPV", HistType::kTH1F, {{1000, -5.0f, 5.0f}});
-      registry.add("hDCAzNegToPV", "hDCAzNegToPV", HistType::kTH1F, {{1000, -5.0f, 5.0f}});
-      registry.add("hDCAV0Dau", "hDCAV0Dau", HistType::kTH1F, {{1000, 0.0f, 10.0f}});
-      registry.add("hV0APplot", "hV0APplot", HistType::kTH2F, {{200, -1.0f, +1.0f}, {250, 0.0f, 0.25f}});
-      registry.add("hV0APplotSelected", "hV0APplotSelected", HistType::kTH2F, {{200, -1.0f, +1.0f}, {250, 0.0f, 0.25f}});
-      registry.add("hV0Psi", "hV0Psi", HistType::kTH2F, {{100, 0, TMath::PiOver2()}, {100, 0, 0.1}});
+      registry.add("hV0Candidate", "hV0Candidate", HistType::kTH1F, {{nBinsV0Candidate, minV0Candidate, maxV0Candidate}});
+      registry.add("hCascCandidate", "hCascCandidate", HistType::kTH1F, {{nBinsV0Candidate, minV0Candidate, maxV0Candidate}});
+      registry.add("hMassGamma", "hMassGamma", HistType::kTH2F, {{nBinsRadius, minRadius, maxRadius}, {nBinsMassGamma, minMassGamma, maxMassGamma}});
+      registry.add("hGammaRxy", "hGammaRxy", HistType::kTH2F, {{nBinsGammaRxy, minGammaRxy, maxGammaRxy}, {nBinsGammaRxy, minGammaRxy, maxGammaRxy}});
+      registry.add("hMassK0S", "hMassK0S", HistType::kTH2F, {{nBinsRadius, minRadius, maxRadius}, {nBinsMassK0S, minMassK0S, maxMassK0S}});
+      registry.add("hMassK0SPt", "hMassK0SPt", HistType::kTH2F, {{nBinsPt, minPt, maxPtK0S}, {nBinsMassK0S, minMassK0S, maxMassK0S}});
+      registry.add("hMassK0SEta", "hMassK0SEta", HistType::kTH2F, {{nBinsEta, minEta, maxEta}, {nBinsMassK0S, minMassK0S, maxMassK0S}});
+      registry.add("hMassK0SPhi", "hMassK0SPhi", HistType::kTH2F, {{nBinsPhi, minPhi, maxPhi}, {nBinsMassK0S, minMassK0S, maxMassK0S}});
+      registry.add("hMassLambda", "hMassLambda", HistType::kTH2F, {{nBinsRadius, minRadius, maxRadius}, {nBinsMassLambda, minMassLambda, maxMassLambda}});
+      registry.add("hMassAntiLambda", "hAntiMassLambda", HistType::kTH2F, {{nBinsRadius, minRadius, maxRadius}, {nBinsMassLambda, minMassLambda, maxMassLambda}});
+      registry.add("hV0Pt", "pT", HistType::kTH1F, {{nBinsV0Pt, minPt, maxV0Pt}});
+      registry.add("hV0EtaPhi", "#eta vs. #varphi", HistType::kTH2F, {{nBinsPhi, minPhi, maxPhi}, {nBinsEta, minEta, maxEta}});
+      registry.add("hV0Radius", "hV0Radius", HistType::kTH1F, {{nBinsV0Radius, minPt, maxV0Radius}});
+      registry.add("hV0CosPA", "hV0CosPA", HistType::kTH1F, {{nBinsV0CosPA, minV0CosPA, maxV0CosPA}});
+      registry.add("hDCAxyPosToPV", "hDCAxyPosToPV", HistType::kTH1F, {{nBinsDCA, minDCA, maxDCA}});
+      registry.add("hDCAxyNegToPV", "hDCAxyNegToPV", HistType::kTH1F, {{nBinsDCA, minDCA, maxDCA}});
+      registry.add("hDCAzPosToPV", "hDCAzPosToPV", HistType::kTH1F, {{nBinsDCA, minDCA, maxDCA}});
+      registry.add("hDCAzNegToPV", "hDCAzNegToPV", HistType::kTH1F, {{nBinsDCA, minDCA, maxDCA}});
+      registry.add("hDCAV0Dau", "hDCAV0Dau", HistType::kTH1F, {{nBinsDCAV0Dau, minPt, maxDCAV0Dau}});
+      registry.add("hV0APplot", "hV0APplot", HistType::kTH2F, {{nBinsAPAlpha, minAPAlpha, maxAPAlpha}, {nBinsAPQt, minAPQt, maxAPQt}});
+      registry.add("hV0APplotSelected", "hV0APplotSelected", HistType::kTH2F, {{nBinsAPAlpha, minAPAlpha, maxAPAlpha}, {nBinsAPQt, minAPQt, maxAPQt}});
+      registry.add("hV0Psi", "hV0Psi", HistType::kTH2F, {{nBinsV0Psi, minPt, TMath::PiOver2()}, {nBinsV0Psi, minPt, maxV0Psi}});
       if (selectCascades) {
-        registry.add("hCascPt", "pT", HistType::kTH1F, {{100, 0.0f, 10}});
-        registry.add("hCascEtaPhi", "#eta vs. #varphi", HistType::kTH2F, {{63, 0, 6.3}, {20, -1.0f, 1.0f}});
-        registry.add("hCascDCAxyPosToPV", "hCascDCAxyPosToPV", HistType::kTH1F, {{1000, -5.0f, 5.0f}});
-        registry.add("hCascDCAxyNegToPV", "hCascDCAxyNegToPV", HistType::kTH1F, {{1000, -5.0f, 5.0f}});
-        registry.add("hCascDCAxyBachToPV", "hCascDCAxyBachToPV", HistType::kTH1F, {{1000, -5.0f, 5.0f}});
-        registry.add("hCascDCAzPosToPV", "hCascDCAzPosToPV", HistType::kTH1F, {{1000, -5.0f, 5.0f}});
-        registry.add("hCascDCAzNegToPV", "hCascDCAzNegToPV", HistType::kTH1F, {{1000, -5.0f, 5.0f}});
-        registry.add("hCascDCAzBachToPV", "hCascDCAzBachToPV", HistType::kTH1F, {{1000, -5.0f, 5.0f}});
-        registry.add("hCascAPplot", "hCascAPplot", HistType::kTH2F, {{200, -1.0f, +1.0f}, {300, 0.0f, 0.3f}});
-        registry.add("hCascV0APplot", "hCascV0APplot", HistType::kTH2F, {{200, -1.0f, +1.0f}, {250, 0.0f, 0.25f}});
-        registry.add("hCascAPplotSelected", "hCascAPplotSelected", HistType::kTH2F, {{200, -1.0f, +1.0f}, {300, 0.0f, 0.3f}});
-        registry.add("hCascV0APplotSelected", "hCascV0APplotSelected", HistType::kTH2F, {{200, -1.0f, +1.0f}, {250, 0.0f, 0.25f}});
-        registry.add("hCascRadius", "hCascRadius", HistType::kTH1F, {{1000, 0.0f, 100.0f}});
-        registry.add("hCascV0Radius", "hCascV0Radius", HistType::kTH1F, {{1000, 0.0f, 100.0f}});
-        registry.add("hCascCosPA", "hCascCosPA", HistType::kTH1F, {{50, 0.95f, 1.0f}});
-        registry.add("hCascV0CosPA", "hCascV0CosPA", HistType::kTH1F, {{50, 0.95f, 1.0f}});
-        registry.add("hMassOmega", "hMassOmega", HistType::kTH2F, {{900, 0.0f, 90.0f}, {100, 1.62f, 1.72f}});
-        registry.add("hMassAntiOmega", "hMassAntiOmega", HistType::kTH2F, {{900, 0.0f, 90.0f}, {100, 1.62f, 1.72f}});
-        registry.add("hCascDCADau", "hCascDCADau", HistType::kTH1F, {{1000, 0.0f, 10.0f}});
-        registry.add("hCascV0DCADau", "hCascV0DCADau", HistType::kTH1F, {{1000, 0.0f, 10.0f}});
+        registry.add("hCascPt", "pT", HistType::kTH1F, {{nBinsCascPt, minPt, maxCascPt}});
+        registry.add("hCascEtaPhi", "#eta vs. #varphi", HistType::kTH2F, {{nBinsPhi, minPhi, maxPhi}, {nBinsEta, minEta, maxEta}});
+        registry.add("hCascDCAxyPosToPV", "hCascDCAxyPosToPV", HistType::kTH1F, {{nBinsDCA, minDCA, maxDCA}});
+        registry.add("hCascDCAxyNegToPV", "hCascDCAxyNegToPV", HistType::kTH1F, {{nBinsDCA, minDCA, maxDCA}});
+        registry.add("hCascDCAxyBachToPV", "hCascDCAxyBachToPV", HistType::kTH1F, {{nBinsDCA, minDCA, maxDCA}});
+        registry.add("hCascDCAzPosToPV", "hCascDCAzPosToPV", HistType::kTH1F, {{nBinsDCA, minDCA, maxDCA}});
+        registry.add("hCascDCAzNegToPV", "hCascDCAzNegToPV", HistType::kTH1F, {{nBinsDCA, minDCA, maxDCA}});
+        registry.add("hCascDCAzBachToPV", "hCascDCAzBachToPV", HistType::kTH1F, {{nBinsDCA, minDCA, maxDCA}});
+        registry.add("hCascAPplot", "hCascAPplot", HistType::kTH2F, {{nBinsAPAlpha, minAPAlpha, maxAPAlpha}, {nBinsCascAPQt, minAPQt, maxCascAPQt}});
+        registry.add("hCascV0APplot", "hCascV0APplot", HistType::kTH2F, {{nBinsAPAlpha, minAPAlpha, maxAPAlpha}, {nBinsAPQt, minAPQt, maxAPQt}});
+        registry.add("hCascAPplotSelected", "hCascAPplotSelected", HistType::kTH2F, {{nBinsAPAlpha, minAPAlpha, maxAPAlpha}, {nBinsCascAPQt, minAPQt, maxCascAPQt}});
+        registry.add("hCascV0APplotSelected", "hCascV0APplotSelected", HistType::kTH2F, {{nBinsAPAlpha, minAPAlpha, maxAPAlpha}, {nBinsAPQt, minAPQt, maxAPQt}});
+        registry.add("hCascRadius", "hCascRadius", HistType::kTH1F, {{nBinsCascRadius, minPt, maxCascRadius}});
+        registry.add("hCascV0Radius", "hCascV0Radius", HistType::kTH1F, {{nBinsCascRadius, minPt, maxCascRadius}});
+        registry.add("hCascCosPA", "hCascCosPA", HistType::kTH1F, {{nBinsV0CosPA, minV0CosPA, maxV0CosPA}});
+        registry.add("hCascV0CosPA", "hCascV0CosPA", HistType::kTH1F, {{nBinsV0CosPA, minV0CosPA, maxV0CosPA}});
+        registry.add("hMassOmega", "hMassOmega", HistType::kTH2F, {{nBinsRadius, minRadius, maxRadius}, {nBinsMassOmega, minMassOmega, maxMassOmega}});
+        registry.add("hMassAntiOmega", "hMassAntiOmega", HistType::kTH2F, {{nBinsRadius, minRadius, maxRadius}, {nBinsMassOmega, minMassOmega, maxMassOmega}});
+        registry.add("hCascDCADau", "hCascDCADau", HistType::kTH1F, {{nBinsDCAV0Dau, minPt, maxDCAV0Dau}});
+        registry.add("hCascV0DCADau", "hCascV0DCADau", HistType::kTH1F, {{nBinsDCAV0Dau, minPt, maxDCAV0Dau}});
       }
     }
 
@@ -580,43 +662,102 @@ struct trackPIDQA {
   Configurable<bool> fillDQHisto{"fillDQHisto", false, "flag to fill dq histograms"};
   Configurable<std::string> fConfigAddTrackHistogram{"cfgAddTrackHistogram", "", "Comma separated list of dq histograms"};
 
+  // Histogram binning configurables for trackPIDQA
+  // Event counter histogram
+  Configurable<int> nBinsEventCounter{"nBinsEventCounter", 5, "Number of bins for event counter"};
+  Configurable<float> minEventCounter{"minEventCounter", 0.5f, "Minimum value for event counter"};
+  Configurable<float> maxEventCounter{"maxEventCounter", 5.5f, "Maximum value for event counter"};
+
+  // Track pT histograms
+  Configurable<int> nBinsTrackPt{"nBinsTrackPt", 100, "Number of bins for track pT"};
+  Configurable<float> minTrackPt{"minTrackPt", 0.0f, "Minimum track pT"};
+  Configurable<float> maxTrackPt{"maxTrackPt", 10.0f, "Maximum track pT"};
+
+  // Track eta-phi histograms
+  Configurable<int> nBinsTrackPhi{"nBinsTrackPhi", 63, "Number of bins for track phi"};
+  Configurable<float> minTrackPhi{"minTrackPhi", 0.0f, "Minimum track phi"};
+  Configurable<float> maxTrackPhi{"maxTrackPhi", 6.3f, "Maximum track phi"};
+
+  Configurable<int> nBinsTrackEta{"nBinsTrackEta", 20, "Number of bins for track eta"};
+  Configurable<float> minTrackEta{"minTrackEta", -1.0f, "Minimum track eta"};
+  Configurable<float> maxTrackEta{"maxTrackEta", 1.0f, "Maximum track eta"};
+
+  // TPC dE/dx histograms
+  Configurable<int> nBinsTPCPin{"nBinsTPCPin", 1000, "Number of bins for TPC momentum"};
+  Configurable<float> minTPCPin{"minTPCPin", 0.0f, "Minimum TPC momentum"};
+  Configurable<float> maxTPCPin{"maxTPCPin", 10.0f, "Maximum TPC momentum"};
+
+  Configurable<int> nBinsTPCdEdx{"nBinsTPCdEdx", 200, "Number of bins for TPC dE/dx"};
+  Configurable<float> minTPCdEdx{"minTPCdEdx", 0.0f, "Minimum TPC dE/dx"};
+  Configurable<float> maxTPCdEdx{"maxTPCdEdx", 200.0f, "Maximum TPC dE/dx"};
+
+  // TPC nSigma histograms
+  Configurable<int> nBinsTPCnSigma{"nBinsTPCnSigma", 200, "Number of bins for TPC nSigma"};
+  Configurable<float> minTPCnSigma{"minTPCnSigma", -10.0f, "Minimum TPC nSigma"};
+  Configurable<float> maxTPCnSigma{"maxTPCnSigma", 10.0f, "Maximum TPC nSigma"};
+
+  // TOF beta histograms
+  Configurable<int> nBinsTOFbeta{"nBinsTOFbeta", 120, "Number of bins for TOF beta"};
+  Configurable<float> minTOFbeta{"minTOFbeta", 0.0f, "Minimum TOF beta"};
+  Configurable<float> maxTOFbeta{"maxTOFbeta", 1.2f, "Maximum TOF beta"};
+
+  // TOF nSigma histograms
+  Configurable<int> nBinsTOFnSigma{"nBinsTOFnSigma", 200, "Number of bins for TOF nSigma"};
+  Configurable<float> minTOFnSigma{"minTOFnSigma", -10.0f, "Minimum TOF nSigma"};
+  Configurable<float> maxTOFnSigma{"maxTOFnSigma", 10.0f, "Maximum TOF nSigma"};
+
+  // Log binning configurables
+  Configurable<bool> useLogBinningMomentum{"useLogBinningMomentum", false, "Use logarithmic binning for momentum axes"};
+  Configurable<float> minTPCPinLog{"minTPCPinLog", 0.1f, "Minimum TPC momentum for log binning (must be > 0)"};
+
   HistogramRegistry registry{"registry"};
   OutputObj<THashList> fOutputList{"output"}; //! the histogram manager output list
   HistogramManager* fHistMan;
+
   void init(o2::framework::InitContext& context)
   {
     bool enableBarrelHistos = context.mOptions.get<bool>("processQA");
     if (enableBarrelHistos) {
-      registry.add("hEventCounter", "hEventCounter", HistType::kTH1F, {{5, 0.5f, 5.5f}});
-      registry.add("hTrackPt_all", "pT", HistType::kTH1F, {{100, 0.0, 10}});
-      registry.add("hTrackEtaPhi_all", "#eta vs. #varphi", HistType::kTH2F, {{63, 0, 6.3}, {20, -1.0f, 1.0f}});
-      registry.add("h2TPCdEdx_Pin_all", "TPC dEdx vs. p_{in}", HistType::kTH2F, {{1000, 0.0, 10}, {200, 0.0, 200.}});
-      registry.add("h2TOFbeta_Pin_all", "TOF #beta vs. p_{in}", HistType::kTH2F, {{1000, 0.0, 10}, {120, 0.0, 1.2}});
+      registry.add("hEventCounter", "hEventCounter", HistType::kTH1F, {{nBinsEventCounter, minEventCounter, maxEventCounter}});
 
-      registry.add("hTrackPt", "pT", HistType::kTH1F, {{100, 0.0, 10}});
-      registry.add("hTrackEtaPhi", "#eta vs. #varphi", HistType::kTH2F, {{63, 0, 6.3}, {20, -1.0f, 1.0f}});
+      // Create momentum axis based on log binning setting
+      AxisSpec momentumAxis{nBinsTPCPin, minTPCPin, maxTPCPin, "p_{in} (GeV/c)"};
+      if (useLogBinningMomentum) {
+        // For log binning, ensure minimum is positive
+        float logMin = std::max(minTPCPinLog.value, 0.001f);
+        momentumAxis = AxisSpec{nBinsTPCPin, logMin, maxTPCPin, "p_{in} (GeV/c)"};
+        momentumAxis.makeLogarithmic();
+      }
 
-      registry.add("h2TPCdEdx_Pin", "TPC dEdx vs. p_{in}", HistType::kTH2F, {{1000, 0.0, 10}, {200, 0.0, 200.}});
-      registry.add("h2TPCdEdx_Pin_El", "TPC dEdx vs. p_{in}", HistType::kTH2F, {{1000, 0.0, 10}, {200, 0.0, 200.}});
-      registry.add("h2TPCdEdx_Pin_Pi", "TPC dEdx vs. p_{in}", HistType::kTH2F, {{1000, 0.0, 10}, {200, 0.0, 200.}});
-      registry.add("h2TPCdEdx_Pin_Ka", "TPC dEdx vs. p_{in}", HistType::kTH2F, {{1000, 0.0, 10}, {200, 0.0, 200.}});
-      registry.add("h2TPCdEdx_Pin_Pr", "TPC dEdx vs. p_{in}", HistType::kTH2F, {{1000, 0.0, 10}, {200, 0.0, 200.}});
+      registry.add("hTrackPt_all", "pT", HistType::kTH1F, {{nBinsTrackPt, minTrackPt, maxTrackPt}});
+      registry.add("hTrackEtaPhi_all", "#eta vs. #varphi", HistType::kTH2F, {{nBinsTrackPhi, minTrackPhi, maxTrackPhi}, {nBinsTrackEta, minTrackEta, maxTrackEta}});
+      registry.add("h2TPCdEdx_Pin_all", "TPC dEdx vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTPCdEdx, minTPCdEdx, maxTPCdEdx}});
+      registry.add("h2TOFbeta_Pin_all", "TOF #beta vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTOFbeta, minTOFbeta, maxTOFbeta}});
 
-      registry.add("h2TPCnSigma_Pin_El", "TPC n#sigma_{e} vs. p_{in}", HistType::kTH2F, {{1000, 0.0, 10}, {200, -10, +10}});
-      registry.add("h2TPCnSigma_Pin_Pi", "TPC n#sigma_{#pi} vs. p_{in}", HistType::kTH2F, {{1000, 0.0, 10}, {200, -10, +10}});
-      registry.add("h2TPCnSigma_Pin_Ka", "TPC n#sigma_{K} vs. p_{in}", HistType::kTH2F, {{1000, 0.0, 10}, {200, -10, +10}});
-      registry.add("h2TPCnSigma_Pin_Pr", "TPC n#sigma_{p} vs. p_{in}", HistType::kTH2F, {{1000, 0.0, 10}, {200, -10, +10}});
+      registry.add("hTrackPt", "pT", HistType::kTH1F, {{nBinsTrackPt, minTrackPt, maxTrackPt}});
+      registry.add("hTrackEtaPhi", "#eta vs. #varphi", HistType::kTH2F, {{nBinsTrackPhi, minTrackPhi, maxTrackPhi}, {nBinsTrackEta, minTrackEta, maxTrackEta}});
 
-      registry.add("h2TOFbeta_Pin", "TOF #beta vs. p_{in}", HistType::kTH2F, {{1000, 0.0, 10}, {120, 0.0, 1.2}});
-      registry.add("h2TOFbeta_Pin_El", "TOF #beta vs. p_{in}", HistType::kTH2F, {{1000, 0.0, 10}, {120, 0.0, 1.2}});
-      registry.add("h2TOFbeta_Pin_Pi", "TOF #beta vs. p_{in}", HistType::kTH2F, {{1000, 0.0, 10}, {120, 0.0, 1.2}});
-      registry.add("h2TOFbeta_Pin_Ka", "TOF #beta vs. p_{in}", HistType::kTH2F, {{1000, 0.0, 10}, {120, 0.0, 1.2}});
-      registry.add("h2TOFbeta_Pin_Pr", "TOF #beta vs. p_{in}", HistType::kTH2F, {{1000, 0.0, 10}, {120, 0.0, 1.2}});
+      registry.add("h2TPCdEdx_Pin", "TPC dEdx vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTPCdEdx, minTPCdEdx, maxTPCdEdx}});
+      registry.add("h2TPCdEdx_Pin_El", "TPC dEdx vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTPCdEdx, minTPCdEdx, maxTPCdEdx}});
+      registry.add("h2TPCdEdx_Pin_Pi", "TPC dEdx vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTPCdEdx, minTPCdEdx, maxTPCdEdx}});
+      registry.add("h2TPCdEdx_Pin_Ka", "TPC dEdx vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTPCdEdx, minTPCdEdx, maxTPCdEdx}});
+      registry.add("h2TPCdEdx_Pin_Pr", "TPC dEdx vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTPCdEdx, minTPCdEdx, maxTPCdEdx}});
 
-      registry.add("h2TOFnSigma_Pin_El", "TOF n#sigma_{e} vs. p_{in}", HistType::kTH2F, {{1000, 0.0, 10}, {200, -10, +10}});
-      registry.add("h2TOFnSigma_Pin_Pi", "TOF n#sigma_{#pi} vs. p_{in}", HistType::kTH2F, {{1000, 0.0, 10}, {200, -10, +10}});
-      registry.add("h2TOFnSigma_Pin_Ka", "TOF n#sigma_{K} vs. p_{in}", HistType::kTH2F, {{1000, 0.0, 10}, {200, -10, +10}});
-      registry.add("h2TOFnSigma_Pin_Pr", "TOF n#sigma_{p} vs. p_{in}", HistType::kTH2F, {{1000, 0.0, 10}, {200, -10, +10}});
+      registry.add("h2TPCnSigma_Pin_El", "TPC n#sigma_{e} vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTPCnSigma, minTPCnSigma, maxTPCnSigma}});
+      registry.add("h2TPCnSigma_Pin_Pi", "TPC n#sigma_{#pi} vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTPCnSigma, minTPCnSigma, maxTPCnSigma}});
+      registry.add("h2TPCnSigma_Pin_Ka", "TPC n#sigma_{K} vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTPCnSigma, minTPCnSigma, maxTPCnSigma}});
+      registry.add("h2TPCnSigma_Pin_Pr", "TPC n#sigma_{p} vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTPCnSigma, minTPCnSigma, maxTPCnSigma}});
+
+      registry.add("h2TOFbeta_Pin", "TOF #beta vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTOFbeta, minTOFbeta, maxTOFbeta}});
+      registry.add("h2TOFbeta_Pin_El", "TOF #beta vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTOFbeta, minTOFbeta, maxTOFbeta}});
+      registry.add("h2TOFbeta_Pin_Pi", "TOF #beta vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTOFbeta, minTOFbeta, maxTOFbeta}});
+      registry.add("h2TOFbeta_Pin_Ka", "TOF #beta vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTOFbeta, minTOFbeta, maxTOFbeta}});
+      registry.add("h2TOFbeta_Pin_Pr", "TOF #beta vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTOFbeta, minTOFbeta, maxTOFbeta}});
+
+      registry.add("h2TOFnSigma_Pin_El", "TOF n#sigma_{e} vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTOFnSigma, minTOFnSigma, maxTOFnSigma}});
+      registry.add("h2TOFnSigma_Pin_Pi", "TOF n#sigma_{#pi} vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTOFnSigma, minTOFnSigma, maxTOFnSigma}});
+      registry.add("h2TOFnSigma_Pin_Ka", "TOF n#sigma_{K} vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTOFnSigma, minTOFnSigma, maxTOFnSigma}});
+      registry.add("h2TOFnSigma_Pin_Pr", "TOF n#sigma_{p} vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTOFnSigma, minTOFnSigma, maxTOFnSigma}});
     }
 
     if (fillDQHisto) {
