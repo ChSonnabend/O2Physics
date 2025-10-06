@@ -665,7 +665,7 @@ struct trackPIDQA {
 
   // Track pT histograms
   Configurable<int> nBinsTrackPt{"nBinsTrackPt", 100, "Number of bins for track pT"};
-  Configurable<float> minTrackPt{"minTrackPt", 0.0f, "Minimum track pT"};
+  Configurable<float> minTrackPt{"minTrackPt", 0.1f, "Minimum track pT"};
   Configurable<float> maxTrackPt{"maxTrackPt", 10.0f, "Maximum track pT"};
 
   // Track eta-phi histograms
@@ -678,8 +678,8 @@ struct trackPIDQA {
   Configurable<float> maxTrackEta{"maxTrackEta", 1.0f, "Maximum track eta"};
 
   // TPC dE/dx histograms
-  Configurable<int> nBinsTPCPin{"nBinsTPCPin", 1000, "Number of bins for TPC momentum"};
-  Configurable<float> minTPCPin{"minTPCPin", 0.0f, "Minimum TPC momentum"};
+  Configurable<int> nBinsTPCPin{"nBinsTPCPin", 200, "Number of bins for TPC momentum"};
+  Configurable<float> minTPCPin{"minTPCPin", 0.1f, "Minimum TPC momentum"};
   Configurable<float> maxTPCPin{"maxTPCPin", 10.0f, "Maximum TPC momentum"};
 
   Configurable<int> nBinsTPCdEdx{"nBinsTPCdEdx", 200, "Number of bins for TPC dE/dx"};
@@ -702,8 +702,7 @@ struct trackPIDQA {
   Configurable<float> maxTOFnSigma{"maxTOFnSigma", 10.0f, "Maximum TOF nSigma"};
 
   // Log binning configurables
-  Configurable<bool> useLogBinningMomentum{"useLogBinningMomentum", false, "Use logarithmic binning for momentum axes"};
-  Configurable<float> minTPCPinLog{"minTPCPinLog", 0.1f, "Minimum TPC momentum for log binning (must be > 0)"};
+  Configurable<int> logAxis{"logAxis", 1, "Alias: if true, enables logarithmic binning for momentum axes (same as useLogBinningMomentum)"};
 
   HistogramRegistry registry{"registry"};
   OutputObj<THashList> fOutputList{"output"}; //! the histogram manager output list
@@ -716,43 +715,54 @@ struct trackPIDQA {
       registry.add("hEventCounter", "hEventCounter", HistType::kTH1F, {{nBinsEventCounter, minEventCounter, maxEventCounter}});
 
       // Create momentum axis based on log binning setting
-      AxisSpec momentumAxis{nBinsTPCPin, minTPCPin, maxTPCPin, "p_{in} (GeV/c)"};
-      if (useLogBinningMomentum) {
-        // For log binning, ensure minimum is positive
-        float logMin = std::max(minTPCPinLog.value, 0.001f);
-        momentumAxis = AxisSpec{nBinsTPCPin, logMin, maxTPCPin, "p_{in} (GeV/c)"};
+      AxisSpec momentumAxis{nBinsTPCPin, minTPCPin, maxTPCPin, "p (GeV/c)"};
+      AxisSpec transverseMomentumAxis{nBinsTrackPt, minTrackPt, maxTrackPt, "p_{T} (GeV/c)"};
+      if (logAxis) {
+        if (minTPCPin <= 0.0f || minTrackPt <= 0.0f) {
+          minTPCPin = 0.1f;
+          minTrackPt = 0.1f;
+          LOGP(warn, "minTPCPin and minTrackPt must be positive for logarithmic binning. Setting to 0.1");
+        }
+        momentumAxis = AxisSpec{nBinsTPCPin, minTPCPin, maxTPCPin, "p (GeV/c)"};
+        transverseMomentumAxis = AxisSpec{nBinsTrackPt, minTrackPt, maxTrackPt, "p_{T} (GeV/c)"};
         momentumAxis.makeLogarithmic();
+        transverseMomentumAxis.makeLogarithmic();
       }
 
-      registry.add("hTrackPt_all", "pT", HistType::kTH1F, {{nBinsTrackPt, minTrackPt, maxTrackPt}});
-      registry.add("hTrackEtaPhi_all", "#eta vs. #varphi", HistType::kTH2F, {{nBinsTrackPhi, minTrackPhi, maxTrackPhi}, {nBinsTrackEta, minTrackEta, maxTrackEta}});
-      registry.add("h2TPCdEdx_Pin_all", "TPC dEdx vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTPCdEdx, minTPCdEdx, maxTPCdEdx}});
-      registry.add("h2TOFbeta_Pin_all", "TOF #beta vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTOFbeta, minTOFbeta, maxTOFbeta}});
+      const AxisSpec dedxAxis{nBinsTPCdEdx, minTPCdEdx, maxTPCdEdx, "TPC dE/dx (a.u.)"};
+      const AxisSpec nSigmaAxis{nBinsTPCnSigma, minTPCnSigma, maxTPCnSigma, "n#sigma"};
+      const AxisSpec betaAxis{nBinsTOFbeta, minTOFbeta, maxTOFbeta, "#beta"};
+      const AxisSpec tofnSigmaAxis{nBinsTOFnSigma, minTOFnSigma, maxTOFnSigma, "n#sigma"};
 
-      registry.add("hTrackPt", "pT", HistType::kTH1F, {{nBinsTrackPt, minTrackPt, maxTrackPt}});
+      registry.add("hTrackPt_all", "pT", HistType::kTH1F, {transverseMomentumAxis});
+      registry.add("hTrackEtaPhi_all", "#eta vs. #varphi", HistType::kTH2F, {{nBinsTrackPhi, minTrackPhi, maxTrackPhi}, {nBinsTrackEta, minTrackEta, maxTrackEta}});
+      registry.add("h2TPCdEdx_Pin_all", "TPC dEdx vs. p_{in}", HistType::kTH2F, {momentumAxis, dedxAxis});
+      registry.add("h2TOFbeta_Pin_all", "TOF #beta vs. p_{in}", HistType::kTH2F, {momentumAxis, betaAxis});
+
+      registry.add("hTrackPt", "pT", HistType::kTH1F, {transverseMomentumAxis});
       registry.add("hTrackEtaPhi", "#eta vs. #varphi", HistType::kTH2F, {{nBinsTrackPhi, minTrackPhi, maxTrackPhi}, {nBinsTrackEta, minTrackEta, maxTrackEta}});
 
-      registry.add("h2TPCdEdx_Pin", "TPC dEdx vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTPCdEdx, minTPCdEdx, maxTPCdEdx}});
-      registry.add("h2TPCdEdx_Pin_El", "TPC dEdx vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTPCdEdx, minTPCdEdx, maxTPCdEdx}});
-      registry.add("h2TPCdEdx_Pin_Pi", "TPC dEdx vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTPCdEdx, minTPCdEdx, maxTPCdEdx}});
-      registry.add("h2TPCdEdx_Pin_Ka", "TPC dEdx vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTPCdEdx, minTPCdEdx, maxTPCdEdx}});
-      registry.add("h2TPCdEdx_Pin_Pr", "TPC dEdx vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTPCdEdx, minTPCdEdx, maxTPCdEdx}});
+      registry.add("h2TPCdEdx_Pin", "TPC dEdx vs. p_{in}", HistType::kTH2F, {momentumAxis, dedxAxis});
+      registry.add("h2TPCdEdx_Pin_El", "TPC dEdx vs. p_{in}", HistType::kTH2F, {momentumAxis, dedxAxis});
+      registry.add("h2TPCdEdx_Pin_Pi", "TPC dEdx vs. p_{in}", HistType::kTH2F, {momentumAxis, dedxAxis});
+      registry.add("h2TPCdEdx_Pin_Ka", "TPC dEdx vs. p_{in}", HistType::kTH2F, {momentumAxis, dedxAxis});
+      registry.add("h2TPCdEdx_Pin_Pr", "TPC dEdx vs. p_{in}", HistType::kTH2F, {momentumAxis, dedxAxis});
 
-      registry.add("h2TPCnSigma_Pin_El", "TPC n#sigma_{e} vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTPCnSigma, minTPCnSigma, maxTPCnSigma}});
-      registry.add("h2TPCnSigma_Pin_Pi", "TPC n#sigma_{#pi} vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTPCnSigma, minTPCnSigma, maxTPCnSigma}});
-      registry.add("h2TPCnSigma_Pin_Ka", "TPC n#sigma_{K} vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTPCnSigma, minTPCnSigma, maxTPCnSigma}});
-      registry.add("h2TPCnSigma_Pin_Pr", "TPC n#sigma_{p} vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTPCnSigma, minTPCnSigma, maxTPCnSigma}});
+      registry.add("h2TPCnSigma_Pin_El", "TPC n#sigma_{e} vs. p_{in}", HistType::kTH2F, {momentumAxis, nSigmaAxis});
+      registry.add("h2TPCnSigma_Pin_Pi", "TPC n#sigma_{#pi} vs. p_{in}", HistType::kTH2F, {momentumAxis, nSigmaAxis});
+      registry.add("h2TPCnSigma_Pin_Ka", "TPC n#sigma_{K} vs. p_{in}", HistType::kTH2F, {momentumAxis, nSigmaAxis});
+      registry.add("h2TPCnSigma_Pin_Pr", "TPC n#sigma_{p} vs. p_{in}", HistType::kTH2F, {momentumAxis, nSigmaAxis});
 
-      registry.add("h2TOFbeta_Pin", "TOF #beta vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTOFbeta, minTOFbeta, maxTOFbeta}});
-      registry.add("h2TOFbeta_Pin_El", "TOF #beta vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTOFbeta, minTOFbeta, maxTOFbeta}});
-      registry.add("h2TOFbeta_Pin_Pi", "TOF #beta vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTOFbeta, minTOFbeta, maxTOFbeta}});
-      registry.add("h2TOFbeta_Pin_Ka", "TOF #beta vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTOFbeta, minTOFbeta, maxTOFbeta}});
-      registry.add("h2TOFbeta_Pin_Pr", "TOF #beta vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTOFbeta, minTOFbeta, maxTOFbeta}});
+      registry.add("h2TOFbeta_Pin", "TOF #beta vs. p_{in}", HistType::kTH2F, {momentumAxis, betaAxis});
+      registry.add("h2TOFbeta_Pin_El", "TOF #beta vs. p_{in}", HistType::kTH2F, {momentumAxis, betaAxis});
+      registry.add("h2TOFbeta_Pin_Pi", "TOF #beta vs. p_{in}", HistType::kTH2F, {momentumAxis, betaAxis});
+      registry.add("h2TOFbeta_Pin_Ka", "TOF #beta vs. p_{in}", HistType::kTH2F, {momentumAxis, betaAxis});
+      registry.add("h2TOFbeta_Pin_Pr", "TOF #beta vs. p_{in}", HistType::kTH2F, {momentumAxis, betaAxis});
 
-      registry.add("h2TOFnSigma_Pin_El", "TOF n#sigma_{e} vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTOFnSigma, minTOFnSigma, maxTOFnSigma}});
-      registry.add("h2TOFnSigma_Pin_Pi", "TOF n#sigma_{#pi} vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTOFnSigma, minTOFnSigma, maxTOFnSigma}});
-      registry.add("h2TOFnSigma_Pin_Ka", "TOF n#sigma_{K} vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTOFnSigma, minTOFnSigma, maxTOFnSigma}});
-      registry.add("h2TOFnSigma_Pin_Pr", "TOF n#sigma_{p} vs. p_{in}", HistType::kTH2F, {momentumAxis, {nBinsTOFnSigma, minTOFnSigma, maxTOFnSigma}});
+      registry.add("h2TOFnSigma_Pin_El", "TOF n#sigma_{e} vs. p_{in}", HistType::kTH2F, {momentumAxis, tofnSigmaAxis});
+      registry.add("h2TOFnSigma_Pin_Pi", "TOF n#sigma_{#pi} vs. p_{in}", HistType::kTH2F, {momentumAxis, tofnSigmaAxis});
+      registry.add("h2TOFnSigma_Pin_Ka", "TOF n#sigma_{K} vs. p_{in}", HistType::kTH2F, {momentumAxis, tofnSigmaAxis});
+      registry.add("h2TOFnSigma_Pin_Pr", "TOF n#sigma_{p} vs. p_{in}", HistType::kTH2F, {momentumAxis, tofnSigmaAxis});
     }
 
     if (fillDQHisto) {
