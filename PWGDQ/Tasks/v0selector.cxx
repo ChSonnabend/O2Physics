@@ -718,13 +718,14 @@ struct trackPIDQA {
       AxisSpec momentumAxis{nBinsTPCPin, minTPCPin, maxTPCPin, "p (GeV/c)"};
       AxisSpec transverseMomentumAxis{nBinsTrackPt, minTrackPt, maxTrackPt, "p_{T} (GeV/c)"};
       if (logAxis) {
-        if (minTPCPin <= 0.0f || minTrackPt <= 0.0f) {
-          minTPCPin = 0.1f;
-          minTrackPt = 0.1f;
-          LOGP(warn, "minTPCPin and minTrackPt must be positive for logarithmic binning. Setting to 0.1");
+        float minP = minTPCPin, maxP = maxTPCPin, minPt = minTrackPt, maxPt = maxTrackPt;
+        if (minP <= 0.0f || minPt <= 0.0f) {
+          minP = 0.1f;
+          minPt = 0.1f;
+          LOGP(warn, "minTPCPin / minTrackPt must be positive for logarithmic binning. Setting to 0.1");
         }
-        momentumAxis = AxisSpec{nBinsTPCPin, minTPCPin, maxTPCPin, "p (GeV/c)"};
-        transverseMomentumAxis = AxisSpec{nBinsTrackPt, minTrackPt, maxTrackPt, "p_{T} (GeV/c)"};
+        momentumAxis = AxisSpec{nBinsTPCPin, minP, maxP, "p (GeV/c)"};
+        transverseMomentumAxis = AxisSpec{nBinsTrackPt, minPt, maxPt, "p_{T} (GeV/c)"};
         momentumAxis.makeLogarithmic();
         transverseMomentumAxis.makeLogarithmic();
       }
